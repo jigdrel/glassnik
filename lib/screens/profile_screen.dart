@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../widgets/profile_header.dart';
 import 'edit_profile_screen.dart';
+import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -48,8 +49,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _openSettings() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Settings screen will be added later')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SettingsScreen()),
     );
   }
 
@@ -78,6 +80,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onEditProfile: _openEditProfile,
             ),
           ),
+
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
@@ -87,6 +90,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
+
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             sliver: SliverGrid(
