@@ -1,37 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../models/post.dart';
-import '../widgets/post_card.dart';
+import '../services/demo_post_store.dart';
+import '../widgets/video_post_card.dart';
+import 'create_post_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  final VoidCallback? onProfileTap;
 
-  static final List<Post> posts = [
-    const Post(
-      username: 'Alex',
-      profileImage: 'https://i.pravatar.cc/150?img=1',
-      postImage: 'https://picsum.photos/600/800?random=1',
-      caption: 'Amazing hike today! 🏔️',
-      likes: 1240,
-      comments: 87,
-    ),
-    const Post(
-      username: 'Sarah',
-      profileImage: 'https://i.pravatar.cc/150?img=2',
-      postImage: 'https://picsum.photos/600/800?random=2',
-      caption: 'Sunset drive around Canberra 🌅',
-      likes: 890,
-      comments: 34,
-    ),
-    const Post(
-      username: 'Mike',
-      profileImage: 'https://i.pravatar.cc/150?img=3',
-      postImage: 'https://picsum.photos/600/800?random=3',
-      caption: 'Weekend adventures 🚗',
-      likes: 560,
-      comments: 19,
-    ),
-  ];
+  const HomeScreen({super.key, this.onProfileTap});
 
   @override
   Widget build(BuildContext context) {
@@ -41,12 +17,37 @@ class HomeScreen extends StatelessWidget {
           'Glassnik',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
+        actions: [
+          IconButton(
+            onPressed: onProfileTap,
+            icon: const Icon(Icons.person_outline),
+          ),
+        ],
       ),
-      body: ListView.builder(
-        itemCount: posts.length,
-        itemBuilder: (context, index) {
-          return PostCard(post: posts[index]);
+      body: ValueListenableBuilder(
+        valueListenable: DemoPostStore.posts,
+        builder: (context, posts, child) {
+          if (posts.isEmpty) {
+            return const Center(child: Text('No videos yet'));
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: posts.length,
+            itemBuilder: (context, index) {
+              return VideoPostCard(post: posts[index]);
+            },
+          );
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CreatePostScreen()),
+          );
+        },
+        child: const Icon(Icons.add),
       ),
     );
   }
