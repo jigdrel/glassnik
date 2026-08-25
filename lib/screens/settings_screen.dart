@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'privacy_settings_screen.dart';
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -58,6 +60,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _openPrivacy() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const PrivacySettingsScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -85,9 +94,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('Privacy'),
             subtitle: const Text('Manage your privacy preferences'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              _showMessage('Privacy settings will be added later');
-            },
+            onTap: _openPrivacy,
           ),
 
           const Divider(),
