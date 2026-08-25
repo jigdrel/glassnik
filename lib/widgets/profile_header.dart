@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'custom_button.dart';
 import 'profile_stats.dart';
 import 'user_avatar.dart';
 
@@ -33,19 +32,28 @@ class ProfileHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          UserAvatar(imageUrl: imageUrl, radius: 48),
+          UserAvatar(
+            imageUrl: imageUrl,
+            radius: 48,
+          ),
 
           const SizedBox(height: 12),
 
           Text(
             username,
-            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
             textAlign: TextAlign.center,
           ),
 
           const SizedBox(height: 6),
 
-          Text(bio, style: textTheme.bodyMedium, textAlign: TextAlign.center),
+          Text(
+            bio,
+            style: textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
 
           const SizedBox(height: 20),
 
@@ -57,10 +65,13 @@ class ProfileHeader extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          CustomButton(
-            text: 'Edit Profile',
-            icon: Icons.edit_outlined,
-            onPressed: onEditProfile,
+          SizedBox(
+            width: 180,
+            child: FilledButton.icon(
+              onPressed: onEditProfile,
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('Edit Profile'),
+            ),
           ),
         ],
       ),
