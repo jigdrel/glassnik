@@ -1,9 +1,19 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/profile_header.dart';
+import 'edit_profile_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String _username = 'glassnik_user';
+
+  String _bio = 'Sharing the world from my point of view.';
 
   static const List<String> _posts = [
     'Mountain Ride',
@@ -14,6 +24,35 @@ class ProfileScreen extends StatelessWidget {
     'Cycling',
   ];
 
+  Future<void> _openEditProfile() async {
+    final result = await Navigator.push<EditProfileResult>(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            EditProfileScreen(initialUsername: _username, initialBio: _bio),
+      ),
+    );
+
+    if (!mounted || result == null) {
+      return;
+    }
+
+    setState(() {
+      _username = result.username;
+      _bio = result.bio;
+    });
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Profile saved')));
+  }
+
+  void _openSettings() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Settings screen will be added later')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,7 +60,7 @@ class ProfileScreen extends StatelessWidget {
         title: const Text('Profile'),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: _openSettings,
             icon: const Icon(Icons.settings_outlined),
             tooltip: 'Settings',
           ),
@@ -31,12 +70,12 @@ class ProfileScreen extends StatelessWidget {
         slivers: [
           SliverToBoxAdapter(
             child: ProfileHeader(
-              username: 'glassnik_user',
-              bio: 'Sharing the world from my point of view.',
+              username: _username,
+              bio: _bio,
               posts: _posts.length,
               followers: 1250,
               following: 340,
-              onEditProfile: () {},
+              onEditProfile: _openEditProfile,
             ),
           ),
           SliverToBoxAdapter(
