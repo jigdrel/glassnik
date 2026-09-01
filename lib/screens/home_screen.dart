@@ -1,37 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../models/post.dart';
 import '../widgets/post_card.dart';
+import 'create_post_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
-  static final List<Post> posts = [
-    const Post(
-      username: 'Alex',
-      profileImage: 'https://i.pravatar.cc/150?img=1',
-      postImage: 'https://picsum.photos/600/800?random=1',
-      caption: 'Amazing hike today! 🏔️',
-      likes: 1240,
-      comments: 87,
-    ),
-    const Post(
-      username: 'Sarah',
-      profileImage: 'https://i.pravatar.cc/150?img=2',
-      postImage: 'https://picsum.photos/600/800?random=2',
-      caption: 'Sunset drive around Canberra 🌅',
-      likes: 890,
-      comments: 34,
-    ),
-    const Post(
-      username: 'Mike',
-      profileImage: 'https://i.pravatar.cc/150?img=3',
-      postImage: 'https://picsum.photos/600/800?random=3',
-      caption: 'Weekend adventures 🚗',
-      likes: 560,
-      comments: 19,
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -39,14 +14,60 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Glassnik',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
-      body: ListView.builder(
-        itemCount: posts.length,
-        itemBuilder: (context, index) {
-          return PostCard(post: posts[index]);
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance
+            .collection('posts')
+            .orderBy('createdAt', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return const Center(
+              child: Text('Failed to load posts.'),
+            );
+          }
+
+          final documents = snapshot.data?.docs ?? [];
+
+          if (documents.isEmpty) {
+            return const Center(
+              child: Text('No posts yet.'),
+            );
+          }
+
+          final posts = documents
+              .map((document) => Post.fromFirestore(document))
+              .toList();
+
+          return ListView.builder(
+            itemCount: posts.length,
+            itemBuilder: (context, index) {
+              return PostCard(
+                post: posts[index],
+              );
+            },
+          );
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const CreatePostScreen(),
+            ),
+          );
+        },
+        child: const Icon(Icons.add),
       ),
     );
   }

@@ -1,4 +1,11 @@
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import '../services/firestore_service.dart';
+import '../services/storage_service.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
@@ -8,21 +15,39 @@ class CreatePostScreen extends StatefulWidget {
 }
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
-  final TextEditingController captionController =
-      TextEditingController();
+  final TextEditingController captionController = TextEditingController();
 
-  bool imageSelected = false;
+  final StorageService storageService = StorageService();
+  final FirestoreService firestoreService = FirestoreService();
 
-  void selectImage() {
+  Uint8List? selectedFileBytes;
+  String? selectedFileName;
+
+  bool isUploading = false;
+
+  Future<void> selectImage() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.image,
+    );
+
+    if (file == null) {
+      return;
+    }
+
+    final bytes = await file.readAsBytes();
+
+    if (!mounted) return;
+
     setState(() {
-      imageSelected = true;
+      selectedFileBytes = bytes;
+      selectedFileName = file.name;
     });
   }
 
-  void submitPost() {
-    final String caption = captionController.text.trim();
+  Future<void> submitPost() async {
+    final caption = captionController.text.trim();
 
-    if (!imageSelected) {
+    if (selectedFileBytes == null || selectedFileName == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select an image first.'),
@@ -40,17 +65,67 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Post created successfully.'),
-      ),
-    );
+    final user = FirebaseAuth.instance.currentUser;
 
-    captionController.clear();
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You must be signed in to create a post.'),
+        ),
+      );
+      return;
+    }
 
     setState(() {
-      imageSelected = false;
+      isUploading = true;
     });
+
+    try {
+      final imageUrl = await storageService.uploadPostFile(
+        fileBytes: selectedFileBytes!,
+        userId: user.uid,
+        fileName: selectedFileName!,
+        contentType: 'image/jpeg',
+      );
+
+      await firestoreService.createPost(
+        userId: user.uid,
+        username: user.email?.split('@').first ?? 'user',
+        caption: caption,
+        imageUrl: imageUrl,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Post created successfully.'),
+        ),
+      );
+
+      captionController.clear();
+
+      setState(() {
+        selectedFileBytes = null;
+        selectedFileName = null;
+      });
+
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to create post. Please try again.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isUploading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -79,23 +154,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   color: Colors.grey.shade400,
                 ),
               ),
-              child: imageSelected
-                  ? const Column(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.check_circle,
-                          size: 64,
-                          color: Colors.green,
-                        ),
-                        SizedBox(height: 12),
-                        Text('Image selected'),
-                      ],
+              child: selectedFileBytes != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.memory(
+                        selectedFileBytes!,
+                        fit: BoxFit.cover,
+                      ),
                     )
                   : const Column(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
                           Icons.add_photo_alternate_outlined,
@@ -106,29 +174,44 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       ],
                     ),
             ),
+
             const SizedBox(height: 16),
+
             OutlinedButton.icon(
-              onPressed: selectImage,
-              icon: const Icon(
-                Icons.photo_library_outlined,
-              ),
+              onPressed: isUploading ? null : selectImage,
+              icon: const Icon(Icons.photo_library_outlined),
               label: const Text('Choose Image'),
             ),
+
             const SizedBox(height: 20),
+
             TextField(
               controller: captionController,
               maxLines: 4,
+              enabled: !isUploading,
               decoration: const InputDecoration(
                 labelText: 'Caption',
                 hintText: 'Write something about your post...',
                 border: OutlineInputBorder(),
               ),
             ),
+
             const SizedBox(height: 20),
+
             ElevatedButton.icon(
-              onPressed: submitPost,
-              icon: const Icon(Icons.upload),
-              label: const Text('Create Post'),
+              onPressed: isUploading ? null : submitPost,
+              icon: isUploading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Icon(Icons.upload),
+              label: Text(
+                isUploading ? 'Uploading...' : 'Create Post',
+              ),
             ),
           ],
         ),

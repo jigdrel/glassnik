@@ -18,4 +18,21 @@ class FirestoreService {
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
+
+  Future<void> createPost({
+    required String userId,
+    required String username,
+    required String caption,
+    required String imageUrl,
+  }) async {
+    await _firestore.collection('posts').add({
+      'userId': userId,
+      'username': username,
+      'caption': caption,
+      'imageUrl': imageUrl,
+      'likesCount': 0,
+      'commentsCount': 0,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
 }
