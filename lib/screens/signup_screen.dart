@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
 import 'home_screen.dart';
+import '../services/firestore_service.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -16,6 +17,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final AuthService authService = AuthService();
+  final FirestoreService firestoreService = FirestoreService();
 
   bool isLoading = false;
 
@@ -37,10 +39,19 @@ class _SignupScreenState extends State<SignupScreen> {
     });
 
     try {
-      await authService.signUp(
-        email: email,
-        password: password,
-      );
+      final userCredential = await authService.signUp(
+  email: email,
+  password: password,
+);
+
+final user = userCredential.user;
+
+if (user != null) {
+  await firestoreService.createUserProfile(
+    uid: user.uid,
+    email: email,
+  );
+}
 
       if (!mounted) return;
 
