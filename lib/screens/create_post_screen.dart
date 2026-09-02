@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:video_player/video_player.dart';
+
+import '../models/demo_video_post.dart';
+import '../services/demo_post_store.dart';
+import '../utils/video_controller_factory.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
@@ -8,127 +14,198 @@ class CreatePostScreen extends StatefulWidget {
 }
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
-  final TextEditingController captionController =
-      TextEditingController();
+  final TextEditingController captionController = TextEditingController();
 
-  bool imageSelected = false;
+  final ImagePicker _picker = ImagePicker();
 
-  void selectImage() {
+  XFile? _selectedVideo;
+  VideoPlayerController? _previewController;
+
+  bool _isUploading = false;
+
+  Future<void> selectVideo() async {
+    final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
+
+    if (video == null) {
+      return;
+    }
+
+    await _previewController?.dispose();
+
+    final VideoPlayerController controller = createPickedVideoController(
+      video.path,
+    );
+
+    await controller.initialize();
+    await controller.setLooping(true);
+
+    if (!mounted) {
+      await controller.dispose();
+      return;
+    }
+
     setState(() {
-      imageSelected = true;
+      _selectedVideo = video;
+      _previewController = controller;
     });
   }
 
-  void submitPost() {
+  Future<void> submitPost() async {
     final String caption = captionController.text.trim();
 
-    if (!imageSelected) {
+    if (_selectedVideo == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select an image first.'),
-        ),
+        const SnackBar(content: Text('Please select a video first.')),
       );
       return;
     }
 
     if (caption.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a caption.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter a caption.')));
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Post created successfully.'),
+    setState(() {
+      _isUploading = true;
+    });
+
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    DemoPostStore.addPost(
+      DemoVideoPost(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        username: '@you',
+        caption: caption,
+        videoPath: _selectedVideo!.path,
+        isPickedFile: true,
+        likes: 0,
       ),
     );
+
+    if (!mounted) {
+      return;
+    }
 
     captionController.clear();
 
     setState(() {
-      imageSelected = false;
+      _isUploading = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Video uploaded successfully!')),
+    );
+
+    Navigator.pop(context);
+  }
+
+  void togglePreview() {
+    if (_previewController == null) {
+      return;
+    }
+
+    setState(() {
+      if (_previewController!.value.isPlaying) {
+        _previewController!.pause();
+      } else {
+        _previewController!.play();
+      }
     });
   }
 
   @override
   void dispose() {
     captionController.dispose();
+    _previewController?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Post'),
-      ),
+      appBar: AppBar(title: const Text('Create Post')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
-              height: 260,
+              height: 280,
               decoration: BoxDecoration(
                 color: Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.grey.shade400,
-                ),
+                border: Border.all(color: Colors.grey.shade400),
               ),
-              child: imageSelected
+              clipBehavior: Clip.antiAlias,
+              child: _previewController == null
                   ? const Column(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.check_circle,
-                          size: 64,
-                          color: Colors.green,
-                        ),
+                        Icon(Icons.video_library_outlined, size: 64),
                         SizedBox(height: 12),
-                        Text('Image selected'),
+                        Text('No video selected'),
                       ],
                     )
-                  : const Column(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
+                  : Stack(
+                      alignment: Alignment.center,
                       children: [
-                        Icon(
-                          Icons.add_photo_alternate_outlined,
-                          size: 64,
+                        Positioned.fill(
+                          child: VideoPlayer(_previewController!),
                         ),
-                        SizedBox(height: 12),
-                        Text('No image selected'),
+                        IconButton.filled(
+                          onPressed: togglePreview,
+                          icon: Icon(
+                            _previewController!.value.isPlaying
+                                ? Icons.pause
+                                : Icons.play_arrow,
+                          ),
+                        ),
                       ],
                     ),
             ),
+
             const SizedBox(height: 16),
+
             OutlinedButton.icon(
-              onPressed: selectImage,
-              icon: const Icon(
-                Icons.photo_library_outlined,
+              onPressed: _isUploading ? null : selectVideo,
+              icon: const Icon(Icons.video_library_outlined),
+              label: Text(
+                _selectedVideo == null ? 'Choose Video' : 'Change Video',
               ),
-              label: const Text('Choose Image'),
             ),
+
+            if (_selectedVideo != null) ...[
+              const SizedBox(height: 8),
+              Text(_selectedVideo!.name, textAlign: TextAlign.center),
+            ],
+
             const SizedBox(height: 20),
+
             TextField(
               controller: captionController,
               maxLines: 4,
+              maxLength: 150,
               decoration: const InputDecoration(
                 labelText: 'Caption',
-                hintText: 'Write something about your post...',
+                hintText: 'Write something about your video...',
                 border: OutlineInputBorder(),
               ),
             ),
+
             const SizedBox(height: 20),
+
             ElevatedButton.icon(
-              onPressed: submitPost,
-              icon: const Icon(Icons.upload),
-              label: const Text('Create Post'),
+              onPressed: _isUploading ? null : submitPost,
+              icon: _isUploading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.upload),
+              label: Text(_isUploading ? 'Uploading...' : 'Create Post'),
             ),
           ],
         ),
