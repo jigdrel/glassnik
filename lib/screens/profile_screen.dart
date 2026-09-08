@@ -1,153 +1,572 @@
 import 'package:flutter/material.dart';
 
-import '../widgets/profile_header.dart';
+import '../models/demo_video_post.dart';
+import '../services/demo_post_store.dart';
+import '../services/profile_store.dart';
+import '../widgets/video_post_card.dart';
+
+import 'connections_screen.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
-
-  @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
-}
-
-class _ProfileScreenState extends State<ProfileScreen> {
-  String _username = 'glassnik_user';
-
-  String _bio = 'Sharing the world from my point of view.';
-
-  static const List<String> _posts = [
-    'Mountain Ride',
-    'City Walk',
-    'Hiking Trail',
-    'Beach POV',
-    'Night Drive',
-    'Cycling',
-  ];
-
-  Future<void> _openEditProfile() async {
-    final result = await Navigator.push<EditProfileResult>(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            EditProfileScreen(initialUsername: _username, initialBio: _bio),
-      ),
-    );
-
-    if (!mounted || result == null) {
-      return;
-    }
-
-    setState(() {
-      _username = result.username;
-      _bio = result.bio;
-    });
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Profile saved')));
-  }
-
-  void _openSettings() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const SettingsScreen()),
-    );
-  }
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
+
       appBar: AppBar(
-        title: const Text('Profile'),
+        backgroundColor: Colors.black,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        centerTitle: true,
+
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
         actions: [
           IconButton(
-            onPressed: _openSettings,
-            icon: const Icon(Icons.settings_outlined),
             tooltip: 'Settings',
+            icon: const Icon(
+              Icons.settings_outlined,
+              color: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const SettingsScreen(),
+                ),
+              );
+            },
           ),
         ],
       ),
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: ProfileHeader(
-              username: _username,
-              bio: _bio,
-              posts: _posts.length,
-              followers: 1250,
-              following: 340,
-              onEditProfile: _openEditProfile,
-            ),
-          ),
 
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-              child: Text(
-                'Posts',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-          ),
+      body: ValueListenableBuilder<UserProfile>(
+        valueListenable: ProfileStore.profile,
 
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 6,
-                mainAxisSpacing: 6,
-                childAspectRatio: 0.75,
-              ),
-              delegate: SliverChildBuilderDelegate((context, index) {
-                return _ProfilePostTile(title: _posts[index]);
-              }, childCount: _posts.length),
-            ),
-          ),
-        ],
+        builder: (
+          context,
+          profile,
+          child,
+        ) {
+          return ValueListenableBuilder<List<DemoVideoPost>>(
+            valueListenable: DemoPostStore.posts,
+
+            builder: (
+              context,
+              posts,
+              child,
+            ) {
+              final myVideos = posts.where((post) {
+                return post.username == '@you' ||
+                    post.username == profile.username;
+              }).toList();
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(
+                  18,
+                  12,
+                  18,
+                  30,
+                ),
+
+                child: Column(
+                  children: [
+                    // ==================================================
+                    // PROFILE IMAGE
+                    // ==================================================
+
+                    Container(
+                      width: 92,
+                      height: 92,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFF6C63FF),
+                        border: Border.all(
+                          color: Colors.white24,
+                          width: 2,
+                        ),
+                      ),
+                      child: ClipOval(
+                        child: profile.profileImageBytes != null
+                            ? Image.memory(
+                                profile.profileImageBytes!,
+                                width: 92,
+                                height: 92,
+                                fit: BoxFit.cover,
+                              )
+                            : const Icon(
+                                Icons.person,
+                                size: 52,
+                                color: Colors.white,
+                              ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // ==================================================
+                    // DISPLAY NAME
+                    // ==================================================
+
+                    Text(
+                      profile.displayName,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    // ==================================================
+                    // USERNAME
+                    // ==================================================
+
+                    Text(
+                      profile.username,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Colors.grey,
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // ==================================================
+                    // BIO
+                    // ==================================================
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                      ),
+                      child: Text(
+                        profile.bio,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          height: 1.4,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // ==================================================
+                    // PROFILE STATS
+                    // ==================================================
+
+                    Row(
+                      children: [
+                        _ProfileStat(
+                          number: profile.following.toString(),
+                          label: 'Following',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const ConnectionsScreen(
+                                  title: 'Following',
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+
+                        _ProfileStat(
+                          number: profile.followers.toString(),
+                          label: 'Followers',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const ConnectionsScreen(
+                                  title: 'Followers',
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+
+                        _ProfileStat(
+                          number: myVideos.length.toString(),
+                          label: 'Videos',
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // ==================================================
+                    // EDIT PROFILE BUTTON
+                    // ==================================================
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(
+                          Icons.edit_outlined,
+                        ),
+                        label: const Text(
+                          'Edit Profile',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(
+                            color: Color(0xFF6C63FF),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              12,
+                            ),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EditProfileScreen(
+                                initialUsername:
+                                    profile.username,
+                                initialBio:
+                                    profile.bio,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    const Divider(
+                      color: Colors.white12,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // ==================================================
+                    // MY VIDEOS HEADER
+                    // ==================================================
+
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.grid_on_outlined,
+                          size: 20,
+                          color: Color(0xFF6C63FF),
+                        ),
+
+                        const SizedBox(width: 8),
+
+                        const Text(
+                          'My Videos',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        const Spacer(),
+
+                        Text(
+                          '${myVideos.length}',
+                          style: const TextStyle(
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // ==================================================
+                    // EMPTY VIDEOS
+                    // ==================================================
+
+                    if (myVideos.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(
+                          vertical: 40,
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.video_library_outlined,
+                              size: 52,
+                              color: Colors.grey,
+                            ),
+
+                            SizedBox(height: 12),
+
+                            Text(
+                              'No videos uploaded yet',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 15,
+                              ),
+                            ),
+
+                            SizedBox(height: 6),
+
+                            Text(
+                              'Upload a video and it will appear here.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white38,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      // ==================================================
+                      // MY VIDEOS GRID
+                      // ==================================================
+
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics:
+                            const NeverScrollableScrollPhysics(),
+                        itemCount: myVideos.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          childAspectRatio: 0.72,
+                        ),
+                        itemBuilder: (
+                          context,
+                          index,
+                        ) {
+                          final post = myVideos[index];
+
+                          return _ProfileVideoTile(
+                            post: post,
+                          );
+                        },
+                      ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
 }
 
-class _ProfilePostTile extends StatelessWidget {
-  const _ProfilePostTile({required this.title});
+// ==========================================================
+// PROFILE STAT
+// ==========================================================
 
-  final String title;
+class _ProfileStat extends StatelessWidget {
+  const _ProfileStat({
+    required this.number,
+    required this.label,
+    this.onTap,
+  });
+
+  final String number;
+  final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: 8,
+          ),
+
+          child: Column(
+            children: [
+              Text(
+                number,
+                style: const TextStyle(
+                  fontSize: 19,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 4),
+
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: onTap != null
+                      ? Colors.white70
+                      : Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-      child: Stack(
-        children: [
-          Center(
-            child: Icon(
-              Icons.videocam_outlined,
-              size: 36,
-              color: colorScheme.primary,
+    );
+  }
+}
+
+// ==========================================================
+// PROFILE VIDEO TILE
+// ==========================================================
+
+class _ProfileVideoTile extends StatelessWidget {
+  const _ProfileVideoTile({
+    required this.post,
+  });
+
+  final DemoVideoPost post;
+
+  void _openVideo(
+    BuildContext context,
+  ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            title: const Text(
+              'Video',
             ),
           ),
-          Positioned(
-            left: 8,
-            right: 8,
-            bottom: 8,
-            child: Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(
+              12,
+            ),
+            child: VideoPostCard(
+              post: post,
             ),
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        _openVideo(context);
+      },
+
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(
+          10,
+        ),
+
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(
+              0xFF1C1C1C,
+            ),
+            border: Border.all(
+              color: Colors.white10,
+            ),
+          ),
+
+          child: Stack(
+            fit: StackFit.expand,
+
+            children: [
+              // VIDEO PLACEHOLDER
+              Container(
+                color: const Color(
+                  0xFF242424,
+                ),
+                child: const Icon(
+                  Icons.movie_outlined,
+                  size: 38,
+                  color: Colors.white24,
+                ),
+              ),
+
+              // PLAY BUTTON
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow,
+                    size: 28,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+
+              // CAPTION
+              Positioned(
+                left: 6,
+                right: 6,
+                bottom: 6,
+
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius:
+                        BorderRadius.circular(
+                      5,
+                    ),
+                  ),
+                  child: Text(
+                    post.caption,
+                    maxLines: 2,
+                    overflow:
+                        TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
