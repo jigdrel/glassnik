@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/demo_video_post.dart';
+import '../services/demo_post_store.dart';
 import '../theme/app_colors.dart';
 import '../utils/video_controller_factory.dart';
 
@@ -53,9 +55,99 @@ class _VideoPostCardState extends State<VideoPostCard> {
     });
   }
 
+  void _toggleLike() {
+    setState(() {
+      _liked = !_liked;
+    });
+  }
+
+  Future<void> _openCommentDialog() async {
+    final commentController = TextEditingController();
+
+    final comment = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Add comment'),
+          content: TextField(
+            controller: commentController,
+            autofocus: true,
+            maxLength: 150,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(
+              hintText: 'Write a comment...',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (value) {
+              if (value.trim().isNotEmpty) {
+                Navigator.pop(dialogContext, value.trim());
+              }
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final value = commentController.text.trim();
+
+                if (value.isEmpty) {
+                  return;
+                }
+
+                Navigator.pop(dialogContext, value);
+              },
+              child: const Text('Post'),
+            ),
+          ],
+        );
+      },
+    );
+
+    commentController.dispose();
+
+    if (!mounted || comment == null || comment.isEmpty) {
+      return;
+    }
+
+    DemoPostStore.addComment(postId: widget.post.id, comment: comment);
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Comment added')));
+  }
+
+  Future<void> _sharePost() async {
+    final shareText =
+        '''
+Check out this Glassnik post by ${widget.post.username} 👓
+
+${widget.post.caption}
+
+https://glassnik.app/post/${widget.post.id}
+''';
+
+    await Clipboard.setData(ClipboardData(text: shareText));
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Share link copied to clipboard')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final int likeCount = widget.post.likes + (_liked ? 1 : 0);
+    final likeCount = widget.post.likes + (_liked ? 1 : 0);
+    final commentCount = widget.post.comments.length;
+
+    final theme = Theme.of(context);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -132,34 +224,35 @@ class _VideoPostCardState extends State<VideoPostCard> {
           ),
 
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             child: Row(
               children: [
                 IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _liked = !_liked;
-                    });
-                  },
+                  onPressed: _toggleLike,
+                  tooltip: 'Like',
                   icon: Icon(
                     _liked ? Icons.favorite : Icons.favorite_border,
-                    color: _liked ? Colors.red : Colors.white,
+                    color: _liked ? Colors.red : theme.colorScheme.onSurface,
                   ),
                 ),
+
                 Text('$likeCount'),
-                const SizedBox(width: 14),
+
+                const SizedBox(width: 12),
+
                 IconButton(
-                  onPressed: () {},
+                  onPressed: _openCommentDialog,
+                  tooltip: 'Comment',
                   icon: const Icon(Icons.mode_comment_outlined),
                 ),
-                const Text('Comments'),
+
+                Text('$commentCount'),
+
                 const Spacer(),
+
                 IconButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Share demo clicked')),
-                    );
-                  },
+                  onPressed: _sharePost,
+                  tooltip: 'Share',
                   icon: const Icon(Icons.share_outlined),
                 ),
               ],
@@ -167,12 +260,46 @@ class _VideoPostCardState extends State<VideoPostCard> {
           ),
 
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Text(
               widget.post.caption,
               style: const TextStyle(fontSize: 15),
             ),
           ),
+
+          if (widget.post.comments.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Comments',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  ...widget.post.comments.map(
+                    (comment) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '@you ',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Expanded(child: Text(comment)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );

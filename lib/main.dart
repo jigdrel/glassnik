@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'screens/splash_screen.dart';
+import 'screens/main_navigation_screen.dart';
 import 'theme/app_theme.dart';
+import 'widgets/iphone_frame.dart';
 
 void main() {
   runApp(const GlassnikApp());
@@ -16,7 +17,16 @@ class GlassnikApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Glassnik',
       theme: AppTheme.darkTheme,
-      home: const SplashScreen(),
+
+      // IMPORTANT:
+      // Do not put HomeScreen here.
+      home: const MainNavigationScreen(),
+
+      builder: (context, child) {
+        return IPhoneFrame(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

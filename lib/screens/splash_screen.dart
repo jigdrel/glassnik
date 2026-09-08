@@ -17,10 +17,8 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
-    // Show the splash screen for 3 seconds, then move on to the
-    // login screen. Once there's a backend, this is also where you'd
-    // check for an existing session and skip straight to HomeScreen.
-    Timer(const Duration(seconds: 3), () {
+    
+    Timer(const Duration(seconds: 30), () {
       if (!mounted) return;
 
       Navigator.of(context).pushReplacement(

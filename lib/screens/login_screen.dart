@@ -109,9 +109,7 @@ class LoginScreen extends StatelessWidget {
                     height: 52,
                     child: ElevatedButton(
                       onPressed: () {
-                        // TODO: replace with real auth once the backend
-                        // is ready. For now this just gets us into the
-                        // app so the rest of the UI can be built/tested.
+                        // TODO: replace with real auth once the backend ready
                         Navigator.of(context).pushReplacement(
                           MaterialPageRoute(
                             builder: (context) => const HomeScreen(),

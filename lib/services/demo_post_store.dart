@@ -15,11 +15,28 @@ class DemoPostStore {
           'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
       isPickedFile: false,
       likes: 124,
+      comments: [],
     ),
   ]);
 
   static void addPost(DemoVideoPost post) {
     posts.value = [post, ...posts.value];
+  }
+
+  static void addComment({required String postId, required String comment}) {
+    final trimmedComment = comment.trim();
+
+    if (trimmedComment.isEmpty) {
+      return;
+    }
+
+    posts.value = posts.value.map((post) {
+      if (post.id != postId) {
+        return post;
+      }
+
+      return post.copyWith(comments: [...post.comments, trimmedComment]);
+    }).toList();
   }
 
   static List<DemoVideoPost> get currentUserPosts {
