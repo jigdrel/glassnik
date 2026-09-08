@@ -4,131 +4,285 @@ class PrivacySettingsScreen extends StatefulWidget {
   const PrivacySettingsScreen({super.key});
 
   @override
-  State<PrivacySettingsScreen> createState() => _PrivacySettingsScreenState();
+  State<PrivacySettingsScreen> createState() =>
+      _PrivacySettingsScreenState();
 }
 
-class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
+class _PrivacySettingsScreenState
+    extends State<PrivacySettingsScreen> {
   bool _privateAccount = false;
-  bool _activityStatus = true;
   bool _allowComments = true;
-  bool _allowDownloads = false;
+  bool _allowSharing = true;
+  bool _activityStatus = true;
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 1),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Privacy')),
-      body: ListView(
-        children: [
-          const SizedBox(height: 8),
+      backgroundColor: Colors.black,
 
-          const _SectionTitle(title: 'Account privacy'),
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Privacy',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+
+      body: ListView(
+        padding: const EdgeInsets.only(
+          bottom: 30,
+        ),
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(
+              18,
+              18,
+              18,
+              8,
+            ),
+            child: Text(
+              'ACCOUNT PRIVACY',
+              style: TextStyle(
+                color: Color(0xFF6C63FF),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.1,
+              ),
+            ),
+          ),
 
           SwitchListTile(
-            secondary: const Icon(Icons.lock_outline),
-            title: const Text('Private account'),
-            subtitle: const Text('Only approved followers can view your posts'),
             value: _privateAccount,
+            activeThumbColor: const Color(0xFF6C63FF),
+            secondary: const Icon(
+              Icons.lock_outline,
+              color: Colors.white70,
+            ),
+            title: const Text(
+              'Private Account',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            subtitle: const Text(
+              'Only approved followers can see your videos.',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 12,
+              ),
+            ),
             onChanged: (value) {
               setState(() {
                 _privateAccount = value;
               });
+
+              _showMessage(
+                value
+                    ? 'Private account enabled'
+                    : 'Private account disabled',
+              );
             },
           ),
 
-          SwitchListTile(
-            secondary: const Icon(Icons.visibility_outlined),
-            title: const Text('Activity status'),
-            subtitle: const Text('Allow others to see when you are active'),
-            value: _activityStatus,
-            onChanged: (value) {
-              setState(() {
-                _activityStatus = value;
-              });
-            },
+          const Divider(
+            color: Colors.white12,
+            height: 28,
           ),
 
-          const Divider(),
-
-          const _SectionTitle(title: 'Interactions'),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(
+              18,
+              8,
+              18,
+              8,
+            ),
+            child: Text(
+              'INTERACTIONS',
+              style: TextStyle(
+                color: Color(0xFF6C63FF),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.1,
+              ),
+            ),
+          ),
 
           SwitchListTile(
-            secondary: const Icon(Icons.comment_outlined),
-            title: const Text('Allow comments'),
-            subtitle: const Text('Allow people to comment on your posts'),
             value: _allowComments,
+            activeThumbColor: const Color(0xFF6C63FF),
+            secondary: const Icon(
+              Icons.comment_outlined,
+              color: Colors.white70,
+            ),
+            title: const Text(
+              'Allow Comments',
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
+            subtitle: const Text(
+              'Allow other users to comment on your videos.',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 12,
+              ),
+            ),
             onChanged: (value) {
               setState(() {
                 _allowComments = value;
               });
+
+              _showMessage(
+                value
+                    ? 'Comments enabled'
+                    : 'Comments disabled',
+              );
             },
           ),
 
           SwitchListTile(
-            secondary: const Icon(Icons.download_outlined),
-            title: const Text('Allow downloads'),
-            subtitle: const Text('Allow people to download your shared videos'),
-            value: _allowDownloads,
+            value: _allowSharing,
+            activeThumbColor: const Color(0xFF6C63FF),
+            secondary: const Icon(
+              Icons.share_outlined,
+              color: Colors.white70,
+            ),
+            title: const Text(
+              'Allow Sharing',
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
+            subtitle: const Text(
+              'Allow users to share your videos.',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 12,
+              ),
+            ),
             onChanged: (value) {
               setState(() {
-                _allowDownloads = value;
+                _allowSharing = value;
               });
+
+              _showMessage(
+                value
+                    ? 'Video sharing enabled'
+                    : 'Video sharing disabled',
+              );
             },
           ),
 
-          const Divider(),
+          const Divider(
+            color: Colors.white12,
+            height: 28,
+          ),
 
-          const _SectionTitle(title: 'Safety'),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(
+              18,
+              8,
+              18,
+              8,
+            ),
+            child: Text(
+              'ACTIVITY',
+              style: TextStyle(
+                color: Color(0xFF6C63FF),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.1,
+              ),
+            ),
+          ),
 
-          ListTile(
-            leading: const Icon(Icons.block_outlined),
-            title: const Text('Blocked users'),
-            subtitle: const Text('Manage accounts you have blocked'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              _showMessage('Blocked users will be connected later');
+          SwitchListTile(
+            value: _activityStatus,
+            activeThumbColor: const Color(0xFF6C63FF),
+            secondary: const Icon(
+              Icons.visibility_outlined,
+              color: Colors.white70,
+            ),
+            title: const Text(
+              'Activity Status',
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
+            subtitle: const Text(
+              'Allow other users to see when you are active.',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 12,
+              ),
+            ),
+            onChanged: (value) {
+              setState(() {
+                _activityStatus = value;
+              });
+
+              _showMessage(
+                value
+                    ? 'Activity status visible'
+                    : 'Activity status hidden',
+              );
             },
           ),
 
-          ListTile(
-            leading: const Icon(Icons.report_outlined),
-            title: const Text('Reporting'),
-            subtitle: const Text('Learn about reporting inappropriate content'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              _showMessage('Reporting options will be added later');
-            },
-          ),
+          const SizedBox(height: 30),
 
-          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 18,
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C1C1C),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: Colors.white10,
+                ),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 20,
+                    color: Color(0xFF6C63FF),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Privacy settings are currently stored locally for the demo. Backend persistence will be added later.',
+                      style: TextStyle(
+                        color: Colors.white60,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Text(
-        title,
-        style: theme.textTheme.titleSmall?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: theme.colorScheme.primary,
-        ),
       ),
     );
   }
