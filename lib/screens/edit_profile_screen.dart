@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../services/profile_store.dart';
 
@@ -22,19 +23,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _usernameController;
   late final TextEditingController _bioController;
 
+  final ImagePicker _imagePicker = ImagePicker();
+
   @override
   void initState() {
     super.initState();
 
-    _displayNameController = TextEditingController(
-      text: ProfileStore.profile.value.displayName,
+    final currentProfile =
+        ProfileStore.profile.value;
+
+    _displayNameController =
+        TextEditingController(
+      text: currentProfile.displayName,
     );
 
-    _usernameController = TextEditingController(
+    _usernameController =
+        TextEditingController(
       text: widget.initialUsername,
     );
 
-    _bioController = TextEditingController(
+    _bioController =
+        TextEditingController(
       text: widget.initialBio,
     );
   }
@@ -47,6 +56,64 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     super.dispose();
   }
+
+  // ==========================================================
+  // CHANGE PROFILE PHOTO
+  // ==========================================================
+
+  Future<void> _changeProfilePhoto() async {
+    try {
+      final XFile? image =
+          await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (image == null) {
+        return;
+      }
+
+      final imageBytes =
+          await image.readAsBytes();
+
+      ProfileStore.updateProfileImage(
+        imageBytes,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {});
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Profile photo updated.',
+          ),
+          duration: Duration(
+            seconds: 1,
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Could not select profile photo.',
+          ),
+        ),
+      );
+    }
+  }
+
+  // ==========================================================
+  // SAVE PROFILE
+  // ==========================================================
 
   void _saveProfile() {
     final displayName =
@@ -72,7 +139,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
-    // Automatically add @ if user didn't type it.
     if (!username.startsWith('@')) {
       username = '@$username';
     }
@@ -103,33 +169,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  void _changeProfilePhoto() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Profile photo upload will be connected later.',
-        ),
-      ),
-    );
-  }
+  // ==========================================================
+  // UI
+  // ==========================================================
 
   @override
   Widget build(BuildContext context) {
+    final profile =
+        ProfileStore.profile.value;
+
     return Scaffold(
       backgroundColor: Colors.black,
 
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
+        centerTitle: true,
 
         title: const Text(
           'Edit Profile',
           style: TextStyle(
+            color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
-
-        centerTitle: true,
 
         actions: [
           TextButton(
@@ -149,14 +212,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
           20,
-          20,
+          18,
           20,
           35,
         ),
 
         child: Column(
           children: [
+            // ==================================================
             // PROFILE PHOTO
+            // ==================================================
+
             Stack(
               children: [
                 Container(
@@ -167,19 +233,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     color: const Color(
                       0xFF6C63FF,
                     ),
-
                     shape: BoxShape.circle,
-
                     border: Border.all(
                       color: Colors.white24,
                       width: 2,
                     ),
                   ),
 
-                  child: const Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 58,
+                  child: ClipOval(
+                    child:
+                        profile.profileImageBytes !=
+                                null
+                            ? Image.memory(
+                                profile
+                                    .profileImageBytes!,
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                              )
+                            : const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 58,
+                              ),
                   ),
                 ),
 
@@ -188,8 +264,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   bottom: 0,
 
                   child: GestureDetector(
-                    onTap:
-                        _changeProfilePhoto,
+                    onTap: _changeProfilePhoto,
 
                     child: Container(
                       width: 34,
@@ -199,8 +274,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           const BoxDecoration(
                         color:
                             Color(0xFF6C63FF),
-                        shape:
-                            BoxShape.circle,
+                        shape: BoxShape.circle,
                       ),
 
                       child: const Icon(
@@ -214,30 +288,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ],
             ),
 
-            const SizedBox(
-              height: 12,
-            ),
+            const SizedBox(height: 8),
 
             TextButton(
-              onPressed:
-                  _changeProfilePhoto,
+              onPressed: _changeProfilePhoto,
 
               child: const Text(
                 'Change profile photo',
                 style: TextStyle(
-                  color:
-                      Color(0xFF6C63FF),
-                  fontWeight:
-                      FontWeight.w600,
+                  color: Color(0xFF6C63FF),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
 
-            const SizedBox(
-              height: 26,
-            ),
+            const SizedBox(height: 24),
 
+            // ==================================================
             // DISPLAY NAME
+            // ==================================================
+
             _buildTextField(
               controller:
                   _displayNameController,
@@ -246,11 +316,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               icon: Icons.badge_outlined,
             ),
 
-            const SizedBox(
-              height: 18,
-            ),
+            const SizedBox(height: 18),
 
+            // ==================================================
             // USERNAME
+            // ==================================================
+
             _buildTextField(
               controller:
                   _usernameController,
@@ -260,11 +331,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   Icons.alternate_email,
             ),
 
-            const SizedBox(
-              height: 18,
-            ),
+            const SizedBox(height: 18),
 
+            // ==================================================
             // BIO
+            // ==================================================
+
             _buildTextField(
               controller:
                   _bioController,
@@ -277,11 +349,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               maxLength: 120,
             ),
 
-            const SizedBox(
-              height: 30,
-            ),
+            const SizedBox(height: 28),
 
+            // ==================================================
             // SAVE BUTTON
+            // ==================================================
+
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -308,7 +381,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       const Color(
                     0xFF6C63FF,
                   ),
-
                   foregroundColor:
                       Colors.white,
 
@@ -323,12 +395,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
 
-            const SizedBox(
-              height: 18,
-            ),
+            const SizedBox(height: 18),
 
             const Text(
-              'Profile information is currently stored locally for the demo.',
+              'Profile information is stored locally for the current demo.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.grey,
@@ -341,6 +411,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
+  // ==========================================================
+  // TEXT FIELD
+  // ==========================================================
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -351,9 +425,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }) {
     return TextField(
       controller: controller,
-
       maxLines: maxLines,
-
       maxLength: maxLength,
 
       style: const TextStyle(

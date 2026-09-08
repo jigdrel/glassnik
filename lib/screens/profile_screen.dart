@@ -5,11 +5,14 @@ import '../services/demo_post_store.dart';
 import '../services/profile_store.dart';
 import '../widgets/video_post_card.dart';
 
+import 'connections_screen.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +54,7 @@ class ProfileScreen extends StatelessWidget {
 
       body: ValueListenableBuilder<UserProfile>(
         valueListenable: ProfileStore.profile,
+
         builder: (
           context,
           profile,
@@ -58,16 +62,12 @@ class ProfileScreen extends StatelessWidget {
         ) {
           return ValueListenableBuilder<List<DemoVideoPost>>(
             valueListenable: DemoPostStore.posts,
+
             builder: (
               context,
               posts,
               child,
             ) {
-              // Videos uploaded by the current demo user.
-              //
-              // "@you" is used by the current upload demo.
-              // profile.username allows videos to match
-              // the edited username as well.
               final myVideos = posts.where((post) {
                 return post.username == '@you' ||
                     post.username == profile.username;
@@ -83,9 +83,9 @@ class ProfileScreen extends StatelessWidget {
 
                 child: Column(
                   children: [
-                    // ==========================================
-                    // PROFILE AVATAR
-                    // ==========================================
+                    // ==================================================
+                    // PROFILE IMAGE
+                    // ==================================================
 
                     Container(
                       width: 92,
@@ -98,18 +98,27 @@ class ProfileScreen extends StatelessWidget {
                           width: 2,
                         ),
                       ),
-                      child: const Icon(
-                        Icons.person,
-                        size: 52,
-                        color: Colors.white,
+                      child: ClipOval(
+                        child: profile.profileImageBytes != null
+                            ? Image.memory(
+                                profile.profileImageBytes!,
+                                width: 92,
+                                height: 92,
+                                fit: BoxFit.cover,
+                              )
+                            : const Icon(
+                                Icons.person,
+                                size: 52,
+                                color: Colors.white,
+                              ),
                       ),
                     ),
 
                     const SizedBox(height: 14),
 
-                    // ==========================================
+                    // ==================================================
                     // DISPLAY NAME
-                    // ==========================================
+                    // ==================================================
 
                     Text(
                       profile.displayName,
@@ -123,9 +132,9 @@ class ProfileScreen extends StatelessWidget {
 
                     const SizedBox(height: 4),
 
-                    // ==========================================
+                    // ==================================================
                     // USERNAME
-                    // ==========================================
+                    // ==================================================
 
                     Text(
                       profile.username,
@@ -137,9 +146,9 @@ class ProfileScreen extends StatelessWidget {
 
                     const SizedBox(height: 14),
 
-                    // ==========================================
+                    // ==================================================
                     // BIO
-                    // ==========================================
+                    // ==================================================
 
                     Padding(
                       padding: const EdgeInsets.symmetric(
@@ -158,30 +167,46 @@ class ProfileScreen extends StatelessWidget {
 
                     const SizedBox(height: 24),
 
-                    // ==========================================
+                    // ==================================================
                     // PROFILE STATS
-                    // ==========================================
+                    // ==================================================
 
                     Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.spaceEvenly,
                       children: [
                         _ProfileStat(
-                          number:
-                              profile.following.toString(),
+                          number: profile.following.toString(),
                           label: 'Following',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const ConnectionsScreen(
+                                  title: 'Following',
+                                ),
+                              ),
+                            );
+                          },
                         ),
 
                         _ProfileStat(
-                          number:
-                              profile.followers.toString(),
+                          number: profile.followers.toString(),
                           label: 'Followers',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const ConnectionsScreen(
+                                  title: 'Followers',
+                                ),
+                              ),
+                            );
+                          },
                         ),
 
-                        // Real number of uploaded demo videos.
                         _ProfileStat(
-                          number:
-                              myVideos.length.toString(),
+                          number: myVideos.length.toString(),
                           label: 'Videos',
                         ),
                       ],
@@ -189,9 +214,9 @@ class ProfileScreen extends StatelessWidget {
 
                     const SizedBox(height: 24),
 
-                    // ==========================================
-                    // EDIT PROFILE
-                    // ==========================================
+                    // ==================================================
+                    // EDIT PROFILE BUTTON
+                    // ==================================================
 
                     SizedBox(
                       width: double.infinity,
@@ -206,24 +231,22 @@ class ProfileScreen extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,
                           side: const BorderSide(
                             color: Color(0xFF6C63FF),
                           ),
                           shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(
+                              12,
+                            ),
                           ),
                         ),
-
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  EditProfileScreen(
+                              builder: (_) => EditProfileScreen(
                                 initialUsername:
                                     profile.username,
                                 initialBio:
@@ -243,9 +266,9 @@ class ProfileScreen extends StatelessWidget {
 
                     const SizedBox(height: 12),
 
-                    // ==========================================
+                    // ==================================================
                     // MY VIDEOS HEADER
-                    // ==========================================
+                    // ==================================================
 
                     Row(
                       children: [
@@ -279,9 +302,9 @@ class ProfileScreen extends StatelessWidget {
 
                     const SizedBox(height: 16),
 
-                    // ==========================================
-                    // EMPTY STATE
-                    // ==========================================
+                    // ==================================================
+                    // EMPTY VIDEOS
+                    // ==================================================
 
                     if (myVideos.isEmpty)
                       const Padding(
@@ -319,19 +342,16 @@ class ProfileScreen extends StatelessWidget {
                           ],
                         ),
                       )
-
-                    // ==========================================
-                    // REAL VIDEO GRID
-                    // ==========================================
-
                     else
+                      // ==================================================
+                      // MY VIDEOS GRID
+                      // ==================================================
+
                       GridView.builder(
                         shrinkWrap: true,
                         physics:
                             const NeverScrollableScrollPhysics(),
-
                         itemCount: myVideos.length,
-
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 3,
@@ -339,13 +359,11 @@ class ProfileScreen extends StatelessWidget {
                           mainAxisSpacing: 8,
                           childAspectRatio: 0.72,
                         ),
-
                         itemBuilder: (
                           context,
                           index,
                         ) {
-                          final post =
-                              myVideos[index];
+                          final post = myVideos[index];
 
                           return _ProfileVideoTile(
                             post: post,
@@ -371,35 +389,50 @@ class _ProfileStat extends StatelessWidget {
   const _ProfileStat({
     required this.number,
     required this.label,
+    this.onTap,
   });
 
   final String number;
   final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Column(
-        children: [
-          Text(
-            number,
-            style: const TextStyle(
-              fontSize: 19,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: 8,
           ),
 
-          const SizedBox(height: 4),
+          child: Column(
+            children: [
+              Text(
+                number,
+                style: const TextStyle(
+                  fontSize: 19,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
 
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
+              const SizedBox(height: 4),
+
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: onTap != null
+                      ? Colors.white70
+                      : Colors.grey,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -433,7 +466,9 @@ class _ProfileVideoTile extends StatelessWidget {
           ),
 
           body: SingleChildScrollView(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(
+              12,
+            ),
             child: VideoPostCard(
               post: post,
             ),
@@ -451,11 +486,15 @@ class _ProfileVideoTile extends StatelessWidget {
       },
 
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(
+          10,
+        ),
 
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1C1C1C),
+            color: const Color(
+              0xFF1C1C1C,
+            ),
             border: Border.all(
               color: Colors.white10,
             ),
@@ -463,10 +502,13 @@ class _ProfileVideoTile extends StatelessWidget {
 
           child: Stack(
             fit: StackFit.expand,
+
             children: [
-              // VIDEO PLACEHOLDER BACKGROUND
+              // VIDEO PLACEHOLDER
               Container(
-                color: const Color(0xFF242424),
+                color: const Color(
+                  0xFF242424,
+                ),
                 child: const Icon(
                   Icons.movie_outlined,
                   size: 38,
@@ -474,7 +516,7 @@ class _ProfileVideoTile extends StatelessWidget {
                 ),
               ),
 
-              // PLAY ICON
+              // PLAY BUTTON
               Center(
                 child: Container(
                   width: 42,
@@ -496,6 +538,7 @@ class _ProfileVideoTile extends StatelessWidget {
                 left: 6,
                 right: 6,
                 bottom: 6,
+
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 5,
@@ -503,12 +546,16 @@ class _ProfileVideoTile extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: Colors.black54,
-                    borderRadius: BorderRadius.circular(5),
+                    borderRadius:
+                        BorderRadius.circular(
+                      5,
+                    ),
                   ),
                   child: Text(
                     post.caption,
                     maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    overflow:
+                        TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 10,
