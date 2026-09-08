@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/profile_store.dart';
+import '../services/theme_store.dart';
 import 'edit_profile_screen.dart';
 import 'privacy_settings_screen.dart';
 
@@ -8,12 +9,12 @@ class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  State<SettingsScreen> createState() =>
+      _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
-  bool _darkModeEnabled = true;
 
   void _showComingSoon(String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -28,28 +29,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF1C1C1C),
-          title: const Text(
-            'Log Out',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          title: const Text('Log Out'),
           content: const Text(
             'Are you sure you want to log out?',
-            style: TextStyle(
-              color: Colors.white70,
-            ),
           ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(context, false);
               },
-              child: const Text(
-                'Cancel',
-              ),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
@@ -71,16 +60,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Logged out successfully (demo).',
-        ),
-      ),
-    );
-
-    // For the current demo this returns to the app root.
-    // Later we can connect this directly to LoginScreen/Firebase Auth.
     Navigator.of(context).popUntil(
       (route) => route.isFirst,
     );
@@ -90,17 +69,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final profile = ProfileStore.profile.value;
 
+    final theme = Theme.of(context);
+    final isDark =
+        theme.brightness == Brightness.dark;
+
+    final backgroundColor = isDark
+        ? Colors.black
+        : const Color(0xFFF5F5F7);
+
+    final primaryText =
+        isDark ? Colors.white : Colors.black87;
+
+    final secondaryText =
+        isDark ? Colors.grey : Colors.black54;
+
+    final iconColor =
+        isDark ? Colors.white70 : Colors.black54;
+
+    final dividerColor =
+        isDark ? Colors.white12 : Colors.black12;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: backgroundColor,
 
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: backgroundColor,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
+        foregroundColor: primaryText,
+        title: Text(
           'Settings',
           style: TextStyle(
-            color: Colors.white,
+            color: primaryText,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -111,10 +111,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           bottom: 30,
         ),
         children: [
-          // ==================================================
-          // ACCOUNT
-          // ==================================================
-
           const _SectionTitle(
             title: 'Account',
           ),
@@ -123,12 +119,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.person_outline,
             title: 'Edit Profile',
             subtitle: 'Name, username and bio',
+            primaryText: primaryText,
+            secondaryText: secondaryText,
+            iconColor: iconColor,
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => EditProfileScreen(
-                    initialUsername: profile.username,
+                    initialUsername:
+                        profile.username,
                     initialBio: profile.bio,
                   ),
                 ),
@@ -139,7 +139,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _SettingsTile(
             icon: Icons.lock_outline,
             title: 'Privacy',
-            subtitle: 'Manage your privacy settings',
+            subtitle:
+                'Manage your privacy settings',
+            primaryText: primaryText,
+            secondaryText: secondaryText,
+            iconColor: iconColor,
             onTap: () {
               Navigator.push(
                 context,
@@ -151,14 +155,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
 
-          const Divider(
-            color: Colors.white12,
+          Divider(
+            color: dividerColor,
             height: 30,
           ),
-
-          // ==================================================
-          // PREFERENCES
-          // ==================================================
 
           const _SectionTitle(
             title: 'Preferences',
@@ -166,21 +166,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           SwitchListTile(
             value: _notificationsEnabled,
-            activeThumbColor: const Color(0xFF6C63FF),
-            secondary: const Icon(
+            activeThumbColor:
+                const Color(0xFF6C63FF),
+            secondary: Icon(
               Icons.notifications_outlined,
-              color: Colors.white70,
+              color: iconColor,
             ),
-            title: const Text(
+            title: Text(
               'Notifications',
               style: TextStyle(
-                color: Colors.white,
+                color: primaryText,
               ),
             ),
-            subtitle: const Text(
+            subtitle: Text(
               'Receive activity notifications',
               style: TextStyle(
-                color: Colors.grey,
+                color: secondaryText,
               ),
             ),
             onChanged: (value) {
@@ -190,44 +191,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
 
-          SwitchListTile(
-            value: _darkModeEnabled,
-            activeThumbColor: const Color(0xFF6C63FF),
-            secondary: const Icon(
-              Icons.dark_mode_outlined,
-              color: Colors.white70,
-            ),
-            title: const Text(
-              'Dark Mode',
-              style: TextStyle(
-                color: Colors.white,
-              ),
-            ),
-            subtitle: const Text(
-              'Use Glassnik dark appearance',
-              style: TextStyle(
-                color: Colors.grey,
-              ),
-            ),
-            onChanged: (value) {
-              setState(() {
-                _darkModeEnabled = value;
-              });
+          // REAL DARK MODE SWITCH
+          ValueListenableBuilder<ThemeMode>(
+            valueListenable:
+                ThemeStore.themeMode,
+            builder: (
+              context,
+              themeMode,
+              child,
+            ) {
+              final darkEnabled =
+                  themeMode == ThemeMode.dark;
 
-              _showComingSoon(
-                'Full theme switching',
+              return SwitchListTile(
+                value: darkEnabled,
+                activeThumbColor:
+                    const Color(0xFF6C63FF),
+                secondary: Icon(
+                  darkEnabled
+                      ? Icons.dark_mode_outlined
+                      : Icons.light_mode_outlined,
+                  color: iconColor,
+                ),
+                title: Text(
+                  'Dark Mode',
+                  style: TextStyle(
+                    color: primaryText,
+                  ),
+                ),
+                subtitle: Text(
+                  darkEnabled
+                      ? 'Use Glassnik dark appearance'
+                      : 'Use Glassnik light appearance',
+                  style: TextStyle(
+                    color: secondaryText,
+                  ),
+                ),
+                onChanged: (value) {
+                  ThemeStore.setDarkMode(
+                    value,
+                  );
+                },
               );
             },
           ),
 
-          const Divider(
-            color: Colors.white12,
+          Divider(
+            color: dividerColor,
             height: 30,
           ),
-
-          // ==================================================
-          // SUPPORT / ABOUT
-          // ==================================================
 
           const _SectionTitle(
             title: 'About',
@@ -237,11 +249,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.info_outline,
             title: 'About Glassnik',
             subtitle: 'Version 1.0 demo',
+            primaryText: primaryText,
+            secondaryText: secondaryText,
+            iconColor: iconColor,
             onTap: () {
               showAboutDialog(
                 context: context,
                 applicationName: 'Glassnik',
-                applicationVersion: '1.0.0 Demo',
+                applicationVersion:
+                    '1.0.0 Demo',
                 applicationIcon: const Icon(
                   Icons.play_circle_fill,
                   size: 42,
@@ -260,6 +276,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.help_outline,
             title: 'Help & Support',
             subtitle: 'Get help using Glassnik',
+            primaryText: primaryText,
+            secondaryText: secondaryText,
+            iconColor: iconColor,
             onTap: () {
               _showComingSoon(
                 'Help & Support',
@@ -267,14 +286,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
 
-          const Divider(
-            color: Colors.white12,
+          Divider(
+            color: dividerColor,
             height: 30,
           ),
-
-          // ==================================================
-          // LOG OUT
-          // ==================================================
 
           ListTile(
             leading: const Icon(
@@ -293,11 +308,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 15),
 
-          const Center(
+          Center(
             child: Text(
               'Glassnik • Demo Version',
               style: TextStyle(
-                color: Colors.white38,
+                color: secondaryText,
                 fontSize: 12,
               ),
             ),
@@ -307,10 +322,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
-
-// ======================================================
-// SECTION TITLE
-// ======================================================
 
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({
@@ -341,21 +352,23 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-// ======================================================
-// SETTINGS TILE
-// ======================================================
-
 class _SettingsTile extends StatelessWidget {
   const _SettingsTile({
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.primaryText,
+    required this.secondaryText,
+    required this.iconColor,
     required this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final Color primaryText;
+  final Color secondaryText;
+  final Color iconColor;
   final VoidCallback onTap;
 
   @override
@@ -363,25 +376,25 @@ class _SettingsTile extends StatelessWidget {
     return ListTile(
       leading: Icon(
         icon,
-        color: Colors.white70,
+        color: iconColor,
       ),
       title: Text(
         title,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: primaryText,
           fontWeight: FontWeight.w500,
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
-          color: Colors.grey,
+        style: TextStyle(
+          color: secondaryText,
           fontSize: 12,
         ),
       ),
-      trailing: const Icon(
+      trailing: Icon(
         Icons.chevron_right,
-        color: Colors.white38,
+        color: secondaryText,
       ),
       onTap: onTap,
     );

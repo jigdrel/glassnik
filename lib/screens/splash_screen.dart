@@ -2,74 +2,134 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
 import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({
+    super.key,
+  });
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  State<SplashScreen> createState() =>
+      _SplashScreenState();
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
 
-    
-    Timer(const Duration(seconds: 30), () {
-      if (!mounted) return;
+    _timer = Timer(
+      const Duration(seconds: 3),
+      () {
+        if (!mounted) {
+          return;
+        }
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => const LoginScreen(),
-        ),
-      );
-    });
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                const LoginScreen(),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
+      backgroundColor: Colors.black,
+
       body: SafeArea(
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.videocam_rounded,
-                size: 90,
-                color: AppColors.primary,
-              ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 30,
+            ),
 
-              SizedBox(height: 24),
+            child: Column(
+              mainAxisAlignment:
+                  MainAxisAlignment.center,
 
-              Text(
-                'GLASSNIK',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 4,
+              children: [
+                Container(
+                  width: 100,
+                  height: 100,
+
+                  decoration: BoxDecoration(
+                    color: const Color(
+                      0xFF6C63FF,
+                    ).withValues(
+                      alpha: 0.15,
+                    ),
+
+                    shape: BoxShape.circle,
+                  ),
+
+                  child: const Icon(
+                    Icons.play_circle_fill,
+                    size: 70,
+                    color: Color(
+                      0xFF6C63FF,
+                    ),
+                  ),
                 ),
-              ),
 
-              SizedBox(height: 8),
-
-              Text(
-                'Share your point of view',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 16,
+                const SizedBox(
+                  height: 25,
                 ),
-              ),
 
-              SizedBox(height: 40),
+                const Text(
+                  'GLASSNIK',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight:
+                        FontWeight.bold,
+                    letterSpacing: 3,
+                  ),
+                ),
 
-              CircularProgressIndicator(
-                color: AppColors.primary,
-              ),
-            ],
+                const SizedBox(
+                  height: 10,
+                ),
+
+                const Text(
+                  'Create. Share. Discover.',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 15,
+                  ),
+                ),
+
+                const SizedBox(
+                  height: 45,
+                ),
+
+                const SizedBox(
+                  width: 28,
+                  height: 28,
+
+                  child:
+                      CircularProgressIndicator(
+                    strokeWidth: 3,
+                    color: Color(
+                      0xFF6C63FF,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'screens/main_navigation_screen.dart';
+import 'screens/splash_screen.dart';
+import 'services/theme_store.dart';
 import 'theme/app_theme.dart';
 import 'widgets/iphone_frame.dart';
 
@@ -13,18 +14,37 @@ class GlassnikApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Glassnik',
-      theme: AppTheme.darkTheme,
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeStore.themeMode,
+      builder: (context, themeMode, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Glassnik',
 
-      // IMPORTANT:
-      // Do not put HomeScreen here.
-      home: const MainNavigationScreen(),
+          // Your existing dark theme.
+          theme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.light,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF6C63FF),
+              brightness: Brightness.light,
+            ),
+            scaffoldBackgroundColor:
+                const Color(0xFFF5F5F7),
+          ),
 
-      builder: (context, child) {
-        return IPhoneFrame(
-          child: child ?? const SizedBox.shrink(),
+          darkTheme: AppTheme.darkTheme,
+
+          // This now changes when the switch changes.
+          themeMode: themeMode,
+
+          home: const SplashScreen(),
+
+          builder: (context, child) {
+            return IPhoneFrame(
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
         );
       },
     );
