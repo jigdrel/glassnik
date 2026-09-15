@@ -102,6 +102,7 @@ class HomeScreen extends StatelessWidget {
                   bottom: 16,
                 ),
                 child: VideoPostCard(
+                  key: ValueKey(post.id),
                   post: post,
                 ),
               );
