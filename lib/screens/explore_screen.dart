@@ -20,6 +20,31 @@ class _ExploreScreenState extends State<ExploreScreen> {
     super.dispose();
   }
 
+  static const _genres = [
+    'Trending',
+    'Music',
+    'Gaming',
+    'Travel',
+    'Funny',
+    'Food',
+    'Sports',
+    'Fashion',
+    'Tech',
+    'Pets',
+  ];
+
+  void _selectHashtag(String tag) {
+    final hashtag = '#${tag.toLowerCase()}';
+    if (_searchController.text.trim().toLowerCase() == hashtag) {
+      _searchController.clear();
+    } else {
+      _searchController.value = TextEditingValue(
+        text: hashtag,
+        selection: TextSelection.collapsed(offset: hashtag.length),
+      );
+    }
+  }
+
   void _openPost(DemoVideoPost selectedPost) {
     Navigator.push<void>(
       context,
@@ -36,10 +61,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                child: VideoPostCard(
-                  key: ValueKey(post.id),
-                  post: post,
-                ),
+                child: VideoPostCard(key: ValueKey(post.id), post: post),
               );
             },
           ),
@@ -64,11 +86,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
         valueListenable: _searchController,
         builder: (context, searchValue, child) {
           final query = searchValue.text.trim().toLowerCase();
+          final selectedGenre = _genres.firstWhere(
+            (genre) => query == '#${genre.toLowerCase()}',
+            orElse: () => '',
+          );
 
           return ValueListenableBuilder<List<DemoVideoPost>>(
             valueListenable: DemoPostStore.posts,
             builder: (context, posts, child) {
+              final suggestions = {
+                ..._genres.map((genre) => genre.toLowerCase()),
+                ...posts.expand((post) => post.searchableHashtags),
+              }.toList()..sort();
               final results = posts.where((post) {
+                if (query.startsWith('#')) {
+                  return post.searchableHashtags.contains(query.substring(1));
+                }
                 return post.caption.toLowerCase().contains(query) ||
                     post.username.toLowerCase().contains(query);
               }).toList();
@@ -96,26 +129,43 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   const SizedBox(height: 24),
                   const Text(
                     'Discover',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-                  const Wrap(
+                  Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: [
-                      Chip(label: Text('#Trending')),
-                      Chip(label: Text('#Music')),
-                      Chip(label: Text('#Gaming')),
-                      Chip(label: Text('#Travel')),
-                      Chip(label: Text('#Funny')),
-                      Chip(label: Text('#Food')),
-                    ],
+                    children: _genres.map((genre) {
+                      return FilterChip(
+                        label: Text('#$genre'),
+                        selected: query == '#${genre.toLowerCase()}',
+                        onSelected: (_) => _selectHashtag(genre),
+                      );
+                    }).toList(),
                   ),
                   const SizedBox(height: 24),
-                  if (results.isEmpty)
+                  if (query == '#') ...[
+                    const Text(
+                      'Choose a hashtag',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Tap a genre above or explore these hashtags.'),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: suggestions.map((tag) {
+                        return ActionChip(
+                          label: Text('#$tag'),
+                          onPressed: () => _selectHashtag(tag),
+                        );
+                      }).toList(),
+                    ),
+                  ] else if (results.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 32),
                       child: Column(
@@ -126,18 +176,23 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             color: Colors.grey,
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            'No results found',
-                            style: TextStyle(
+                          Text(
+                            selectedGenre.isNotEmpty
+                                ? 'No #$selectedGenre videos yet'
+                                : 'No results found',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            query.isEmpty
+                            selectedGenre.isNotEmpty
+                                ? 'Upload a video with #$selectedGenre in the caption to see it here.'
+                                : query.isEmpty
                                 ? 'No posts yet. Upload a video to get started!'
-                                : 'Try another caption or username.',
+                                : 'Try another caption, username or hashtag.',
                             textAlign: TextAlign.center,
                             style: const TextStyle(color: Colors.grey),
                           ),

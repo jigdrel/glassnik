@@ -23,6 +23,61 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   bool _isUploading = false;
 
+  static const _captionLimit = 150;
+  static const _genres = [
+    'Trending',
+    'Music',
+    'Gaming',
+    'Travel',
+    'Funny',
+    'Food',
+    'Sports',
+    'Fashion',
+    'Tech',
+    'Pets',
+  ];
+  static final _captionHashtags = RegExp(r'(?:^|[^\w#])#(\w+)');
+
+  void _toggleHashtag(String genre) {
+    final caption = captionController.text;
+    final tag = genre.toLowerCase();
+    final selected = _captionHashtags
+        .allMatches(caption)
+        .any((match) => match.group(1)!.toLowerCase() == tag);
+    final String updatedCaption;
+
+    if (selected) {
+      updatedCaption = caption.replaceAllMapped(_captionHashtags, (match) {
+        if (match.group(1)!.toLowerCase() != tag) {
+          return match.group(0)!;
+        }
+        // Preserve the whitespace or punctuation before the hashtag.
+        final matchedText = match.group(0)!;
+        return matchedText.substring(0, matchedText.indexOf('#'));
+      }).trim();
+    } else {
+      final separator = caption.isEmpty || RegExp(r'\s$').hasMatch(caption)
+          ? ''
+          : ' ';
+      updatedCaption = '$caption$separator#$genre';
+      if (updatedCaption.characters.length > _captionLimit) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Adding this hashtag would exceed the 150-character caption limit.',
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
+    captionController.value = TextEditingValue(
+      text: updatedCaption,
+      selection: TextSelection.collapsed(offset: updatedCaption.length),
+    );
+  }
+
   Future<void> selectVideo() async {
     final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
 
@@ -186,7 +241,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             TextField(
               controller: captionController,
               maxLines: 4,
-              maxLength: 150,
+              maxLength: _captionLimit,
               decoration: const InputDecoration(
                 labelText: 'Caption',
                 hintText: 'Write something about your video...',
@@ -194,6 +249,42 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
             ),
 
+            const SizedBox(height: 20),
+
+            const Text(
+              'Add hashtags',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: captionController,
+              builder: (context, captionValue, child) {
+                final selectedTags = _captionHashtags
+                    .allMatches(captionValue.text)
+                    .map((match) => match.group(1)!.toLowerCase())
+                    .toSet();
+
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _genres.map((genre) {
+                    final selected = selectedTags.contains(genre.toLowerCase());
+                    return FilterChip(
+                      label: Text('#$genre'),
+                      selected: selected,
+                      selectedColor: const Color(0xFF6C63FF),
+                      checkmarkColor: Colors.white,
+                      labelStyle: selected
+                          ? const TextStyle(color: Colors.white)
+                          : null,
+                      onSelected: _isUploading
+                          ? null
+                          : (_) => _toggleHashtag(genre),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
             const SizedBox(height: 20),
 
             ElevatedButton.icon(

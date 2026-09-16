@@ -6,6 +6,7 @@ class DemoVideoPost {
   final bool isPickedFile;
   final int likes;
   final List<String> comments;
+  final List<String> hashtags;
 
   const DemoVideoPost({
     required this.id,
@@ -15,7 +16,20 @@ class DemoVideoPost {
     required this.isPickedFile,
     this.likes = 0,
     this.comments = const [],
+    this.hashtags = const [],
   });
+
+  // Include caption tags so existing uploads need no migration.
+  Set<String> get searchableHashtags {
+    return {
+      ...hashtags.map(
+        (tag) => tag.trim().replaceFirst(RegExp(r'^#'), '').toLowerCase(),
+      ),
+      ...RegExp(
+        r'(?:^|[^\w#])#(\w+)',
+      ).allMatches(caption).map((match) => match.group(1)!.toLowerCase()),
+    }..remove('');
+  }
 
   DemoVideoPost copyWith({
     String? id,
@@ -25,6 +39,7 @@ class DemoVideoPost {
     bool? isPickedFile,
     int? likes,
     List<String>? comments,
+    List<String>? hashtags,
   }) {
     return DemoVideoPost(
       id: id ?? this.id,
@@ -34,6 +49,7 @@ class DemoVideoPost {
       isPickedFile: isPickedFile ?? this.isPickedFile,
       likes: likes ?? this.likes,
       comments: comments ?? this.comments,
+      hashtags: hashtags ?? this.hashtags,
     );
   }
 }
