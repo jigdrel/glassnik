@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../services/auth_service.dart';
 import 'login_screen.dart';
+import 'main_navigation_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({
@@ -28,11 +30,17 @@ class _SplashScreenState extends State<SplashScreen> {
           return;
         }
 
+        // If a session already exists (user signed in during a
+        // previous app run and never logged out), skip straight
+        // past LoginScreen instead of making them sign in again.
+        final isSignedIn = AuthService().currentUser != null;
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                const LoginScreen(),
+            builder: (_) => isSignedIn
+                ? const MainNavigationScreen()
+                : const LoginScreen(),
           ),
         );
       },
