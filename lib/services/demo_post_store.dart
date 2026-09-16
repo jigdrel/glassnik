@@ -15,6 +15,7 @@ class DemoPostStore {
           'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
       isPickedFile: false,
       likes: 124,
+      hashtags: ['trending', 'nature'],
       comments: [],
     ),
   ]);
