@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "978347141837",
+    "project_id": "glassnik-103a6",
+    "storage_bucket": "glassnik-103a6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:978347141837:android:21b23299a84ffb68a51784",
+        "android_client_info": {
+          "package_name": "com.example.glassnik"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDWY_E1tRjrDZOI2jSO_4gbXQjGGtzgFT0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
