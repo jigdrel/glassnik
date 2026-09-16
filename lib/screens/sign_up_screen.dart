@@ -1,35 +1,86 @@
 import 'package:flutter/material.dart';
 
 import 'main_navigation_screen.dart';
-import 'sign_up_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class SignUpScreen extends StatefulWidget {
+  const SignUpScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _emailController = TextEditingController();
-
-  final TextEditingController _passwordController = TextEditingController();
+  final _displayNameController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
   bool _isLoading = false;
 
   @override
   void dispose() {
+    _displayNameController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   // -------------------------------------------------------
-  // EMAIL VALIDATION
+  // VALIDATION
   // -------------------------------------------------------
+
+  String? _validateDisplayName(String? value) {
+    final name = value?.trim() ?? '';
+
+    if (name.isEmpty) {
+      return 'Please enter your name';
+    }
+
+    if (name.length < 2) {
+      return 'Name must contain at least 2 characters';
+    }
+
+    if (name.length > 40) {
+      return 'Name must be 40 characters or less';
+    }
+
+    return null;
+  }
+
+  String? _validateUsername(String? value) {
+    final username = value?.trim() ?? '';
+
+    if (username.isEmpty) {
+      return 'Please choose a username';
+    }
+
+    if (username.length < 3) {
+      return 'Username must contain at least 3 characters';
+    }
+
+    if (username.length > 20) {
+      return 'Username must be 20 characters or less';
+    }
+
+    final usernameRegex = RegExp(r'^[a-zA-Z0-9._]+$');
+
+    if (!usernameRegex.hasMatch(username)) {
+      return 'Only letters, numbers, . and _ are allowed';
+    }
+
+    if (username.startsWith('.') || username.startsWith('_')) {
+      return 'Username must start with a letter or number';
+    }
+
+    return null;
+  }
 
   String? _validateEmail(String? value) {
     final email = value?.trim() ?? '';
@@ -49,29 +100,53 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
-  // -------------------------------------------------------
-  // PASSWORD VALIDATION
-  // -------------------------------------------------------
-
   String? _validatePassword(String? value) {
     final password = value ?? '';
 
     if (password.isEmpty) {
-      return 'Please enter your password';
+      return 'Please enter a password';
     }
 
     if (password.length < 8) {
       return 'Password must contain at least 8 characters';
     }
 
+    if (!RegExp(r'[A-Z]').hasMatch(password)) {
+      return 'Add at least one uppercase letter';
+    }
+
+    if (!RegExp(r'[a-z]').hasMatch(password)) {
+      return 'Add at least one lowercase letter';
+    }
+
+    if (!RegExp(r'[0-9]').hasMatch(password)) {
+      return 'Add at least one number';
+    }
+
+    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) {
+      return 'Add at least one special character';
+    }
+
+    return null;
+  }
+
+  String? _validateConfirmPassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please confirm your password';
+    }
+
+    if (value != _passwordController.text) {
+      return 'Passwords do not match';
+    }
+
     return null;
   }
 
   // -------------------------------------------------------
-  // SIGN IN
+  // CREATE ACCOUNT
   // -------------------------------------------------------
 
-  Future<void> _signIn() async {
+  Future<void> _createAccount() async {
     FocusScope.of(context).unfocus();
 
     if (!_formKey.currentState!.validate()) {
@@ -88,23 +163,36 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       /*
-       * TEMPORARY LOGIN
+       * TEMPORARY ACCOUNT CREATION
        *
-       * This currently validates the form only.
+       * Front-end validation is complete, but Firebase Authentication
+       * is NOT connected yet.
        *
-       * In the next step this will be replaced with:
+       * Later this will become:
        *
-       * FirebaseAuth.instance.signInWithEmailAndPassword(
+       * final credential =
+       *     await FirebaseAuth.instance
+       *         .createUserWithEmailAndPassword(
        *   email: _emailController.text.trim(),
        *   password: _passwordController.text,
        * );
        *
-       * Do NOT consider this real authentication yet.
+       * Then the user's profile will be saved to Firestore using:
+       *
+       * credential.user!.uid
+       *
+       * Passwords must NEVER be saved to Firestore.
        */
 
-      await Future.delayed(const Duration(milliseconds: 700));
+      await Future.delayed(const Duration(milliseconds: 800));
 
       if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Welcome ${_displayNameController.text.trim()}!'),
+        ),
+      );
 
       Navigator.pushAndRemoveUntil(
         context,
@@ -115,7 +203,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to sign in. Please try again.')),
+        const SnackBar(
+          content: Text('Unable to create account. Please try again.'),
+        ),
       );
     } finally {
       if (mounted) {
@@ -124,63 +214,6 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     }
-  }
-
-  // -------------------------------------------------------
-  // FORGOT PASSWORD
-  // -------------------------------------------------------
-
-  void _forgotPassword() {
-    final email = _emailController.text.trim();
-
-    if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Enter your email first to reset your password.'),
-        ),
-      );
-
-      return;
-    }
-
-    final emailError = _validateEmail(email);
-
-    if (emailError != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(emailError)));
-
-      return;
-    }
-
-    /*
-     * TODO:
-     *
-     * When Firebase Authentication is connected:
-     *
-     * FirebaseAuth.instance.sendPasswordResetEmail(
-     *   email: email,
-     * );
-     */
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Password recovery will be connected with Firebase Authentication.',
-        ),
-      ),
-    );
-  }
-
-  // -------------------------------------------------------
-  // CREATE ACCOUNT
-  // -------------------------------------------------------
-
-  void _openCreateAccount() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SignUpScreen()),
-    );
   }
 
   // -------------------------------------------------------
@@ -196,41 +229,29 @@ class _LoginScreenState extends State<LoginScreen> {
     return InputDecoration(
       labelText: label,
       hintText: hint,
-
       prefixIcon: Icon(icon, color: const Color(0xFF6C63FF)),
-
       suffixIcon: suffixIcon,
-
       labelStyle: const TextStyle(color: Colors.grey),
-
       hintStyle: const TextStyle(color: Colors.white30),
-
       errorStyle: const TextStyle(color: Colors.redAccent),
-
       filled: true,
-
       fillColor: const Color(0xFF1C1C1C),
-
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide.none,
       ),
-
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: Colors.white12),
       ),
-
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: Color(0xFF6C63FF), width: 2),
       ),
-
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: Colors.redAccent),
       ),
-
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: Colors.redAccent, width: 2),
@@ -247,10 +268,17 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
 
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text('Create Account'),
+      ),
+
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 45, 24, 35),
+            padding: const EdgeInsets.fromLTRB(24, 15, 24, 40),
 
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 430),
@@ -262,48 +290,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
 
                   children: [
-                    // ------------------------------------------------
                     // LOGO
-                    // ------------------------------------------------
                     const Icon(
                       Icons.play_circle_fill,
-                      size: 72,
+                      size: 65,
                       color: Color(0xFF6C63FF),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
 
                     const Text(
-                      'GLASSNIK',
+                      'Join Glassnik',
                       textAlign: TextAlign.center,
 
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 4,
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    const Text(
-                      'Share your perspective',
-                      textAlign: TextAlign.center,
-
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
-                    ),
-
-                    const SizedBox(height: 45),
-
-                    // ------------------------------------------------
-                    // WELCOME
-                    // ------------------------------------------------
-                    const Text(
-                      'Welcome back',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 29,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -311,15 +313,63 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 8),
 
                     const Text(
-                      'Sign in to continue to Glassnik',
-                      style: TextStyle(color: Colors.grey, fontSize: 15),
+                      'Create your account and start sharing your perspective.',
+                      textAlign: TextAlign.center,
+
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
                     ),
 
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 32),
 
-                    // ------------------------------------------------
+                    // DISPLAY NAME
+                    TextFormField(
+                      controller: _displayNameController,
+
+                      textInputAction: TextInputAction.next,
+
+                      textCapitalization: TextCapitalization.words,
+
+                      style: const TextStyle(color: Colors.white),
+
+                      validator: _validateDisplayName,
+
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+
+                      decoration: _inputDecoration(
+                        label: 'Display Name',
+                        hint: 'Your name',
+                        icon: Icons.person_outline,
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // USERNAME
+                    TextFormField(
+                      controller: _usernameController,
+
+                      textInputAction: TextInputAction.next,
+
+                      autocorrect: false,
+
+                      enableSuggestions: false,
+
+                      style: const TextStyle(color: Colors.white),
+
+                      validator: _validateUsername,
+
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+
+                      decoration: _inputDecoration(
+                        label: 'Username',
+                        hint: 'Choose a username',
+                        icon: Icons.alternate_email,
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
                     // EMAIL
-                    // ------------------------------------------------
                     TextFormField(
                       controller: _emailController,
 
@@ -329,7 +379,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       autocorrect: false,
 
-                      autofillHints: const [AutofillHints.email],
+                      autofillHints: const [AutofillHints.newUsername],
 
                       style: const TextStyle(color: Colors.white),
 
@@ -344,23 +394,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
 
-                    // ------------------------------------------------
                     // PASSWORD
-                    // ------------------------------------------------
                     TextFormField(
                       controller: _passwordController,
 
                       obscureText: _obscurePassword,
 
-                      textInputAction: TextInputAction.done,
+                      textInputAction: TextInputAction.next,
 
                       enableSuggestions: false,
 
                       autocorrect: false,
 
-                      autofillHints: const [AutofillHints.password],
+                      autofillHints: const [AutofillHints.newPassword],
 
                       style: const TextStyle(color: Colors.white),
 
@@ -368,15 +416,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       autovalidateMode: AutovalidateMode.onUserInteraction,
 
-                      onFieldSubmitted: (_) {
-                        if (!_isLoading) {
-                          _signIn();
-                        }
-                      },
-
                       decoration: _inputDecoration(
                         label: 'Password',
-                        hint: 'Enter your password',
+                        hint: 'Create a password',
                         icon: Icons.lock_outline,
 
                         suffixIcon: IconButton(
@@ -401,38 +443,75 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 10),
 
-                    // ------------------------------------------------
-                    // FORGOT PASSWORD
-                    // ------------------------------------------------
-                    Align(
-                      alignment: Alignment.centerRight,
+                    const Text(
+                      'Use at least 8 characters with an uppercase letter, lowercase letter, number and special character.',
+                      style: TextStyle(color: Colors.white54, fontSize: 12),
+                    ),
 
-                      child: TextButton(
-                        onPressed: _isLoading ? null : _forgotPassword,
+                    const SizedBox(height: 16),
 
-                        child: const Text(
-                          'Forgot password?',
+                    // CONFIRM PASSWORD
+                    TextFormField(
+                      controller: _confirmPasswordController,
 
-                          style: TextStyle(
-                            color: Color(0xFF6C63FF),
-                            fontWeight: FontWeight.w600,
+                      obscureText: _obscureConfirmPassword,
+
+                      textInputAction: TextInputAction.done,
+
+                      enableSuggestions: false,
+
+                      autocorrect: false,
+
+                      style: const TextStyle(color: Colors.white),
+
+                      validator: _validateConfirmPassword,
+
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+
+                      onFieldSubmitted: (_) {
+                        if (!_isLoading) {
+                          _createAccount();
+                        }
+                      },
+
+                      decoration: _inputDecoration(
+                        label: 'Confirm Password',
+                        hint: 'Enter password again',
+                        icon: Icons.lock_reset_outlined,
+
+                        suffixIcon: IconButton(
+                          tooltip: _obscureConfirmPassword
+                              ? 'Show password'
+                              : 'Hide password',
+
+                          onPressed: () {
+                            setState(() {
+                              _obscureConfirmPassword =
+                                  !_obscureConfirmPassword;
+                            });
+                          },
+
+                          icon: Icon(
+                            _obscureConfirmPassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+
+                            color: Colors.grey,
                           ),
                         ),
                       ),
                     ),
 
-                    const SizedBox(height: 15),
+                    const SizedBox(height: 28),
 
-                    // ------------------------------------------------
-                    // SIGN IN BUTTON
-                    // ------------------------------------------------
+                    // CREATE ACCOUNT
                     SizedBox(
                       height: 52,
 
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _signIn,
+                        onPressed: _isLoading ? null : _createAccount,
 
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF6C63FF),
@@ -459,7 +538,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               )
                             : const Text(
-                                'Sign In',
+                                'Create Account',
 
                                 style: TextStyle(
                                   fontSize: 16,
@@ -469,83 +548,28 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 24),
 
-                    // ------------------------------------------------
-                    // DIVIDER
-                    // ------------------------------------------------
-                    const Row(
-                      children: [
-                        Expanded(child: Divider(color: Colors.white24)),
-
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 14),
-
-                          child: Text(
-                            'OR',
-
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                        ),
-
-                        Expanded(child: Divider(color: Colors.white24)),
-                      ],
-                    ),
-
-                    const SizedBox(height: 22),
-
-                    // ------------------------------------------------
-                    // CREATE ACCOUNT
-                    // ------------------------------------------------
-                    SizedBox(
-                      height: 52,
-
-                      child: OutlinedButton.icon(
-                        onPressed: _isLoading ? null : _openCreateAccount,
-
-                        icon: const Icon(Icons.person_add_outlined),
-
-                        label: const Text(
-                          'Create New Account',
-
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-
-                          side: const BorderSide(color: Color(0xFF6C63FF)),
-
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 25),
-
-                    // ------------------------------------------------
-                    // ACCOUNT MESSAGE
-                    // ------------------------------------------------
+                    // RETURN TO LOGIN
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
 
                       children: [
                         const Text(
-                          "Don't have an account?",
+                          'Already have an account?',
 
                           style: TextStyle(color: Colors.grey, fontSize: 13),
                         ),
 
                         TextButton(
-                          onPressed: _isLoading ? null : _openCreateAccount,
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  Navigator.pop(context);
+                                },
 
                           child: const Text(
-                            'Sign Up',
+                            'Sign In',
 
                             style: TextStyle(
                               color: Color(0xFF6C63FF),
@@ -556,13 +580,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
 
-                    // ------------------------------------------------
-                    // TEMPORARY WARNING
-                    // ------------------------------------------------
                     const Text(
-                      'Authentication backend is not connected yet.',
+                      'Account storage is not connected to Firebase yet.',
                       textAlign: TextAlign.center,
 
                       style: TextStyle(color: Colors.white38, fontSize: 11),
