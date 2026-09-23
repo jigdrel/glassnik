@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -8,14 +10,15 @@ class EditProfileScreen extends StatefulWidget {
     super.key,
     required this.initialUsername,
     required this.initialBio,
+    this.imagePicker,
   });
 
   final String initialUsername;
   final String initialBio;
+  final ImagePicker? imagePicker;
 
   @override
-  State<EditProfileScreen> createState() =>
-      _EditProfileScreenState();
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
@@ -23,29 +26,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _usernameController;
   late final TextEditingController _bioController;
 
-  final ImagePicker _imagePicker = ImagePicker();
+  late final ImagePicker _imagePicker;
+  Uint8List? _pendingPhoto;
+  bool _pickingPhoto = false;
 
   @override
   void initState() {
     super.initState();
+    _imagePicker = widget.imagePicker ?? ImagePicker();
 
-    final currentProfile =
-        ProfileStore.profile.value;
+    final currentProfile = ProfileStore.profile.value;
+    _pendingPhoto = currentProfile.profileImageBytes;
 
-    _displayNameController =
-        TextEditingController(
+    _displayNameController = TextEditingController(
       text: currentProfile.displayName,
     );
 
-    _usernameController =
-        TextEditingController(
-      text: widget.initialUsername,
-    );
+    _usernameController = TextEditingController(text: widget.initialUsername);
 
-    _bioController =
-        TextEditingController(
-      text: widget.initialBio,
-    );
+    _bioController = TextEditingController(text: widget.initialBio);
   }
 
   @override
@@ -62,9 +61,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   // ==========================================================
 
   Future<void> _changeProfilePhoto() async {
+    if (_pickingPhoto) return;
+    setState(() => _pickingPhoto = true);
     try {
-      final XFile? image =
-          await _imagePicker.pickImage(
+      final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 80,
       );
@@ -73,41 +73,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         return;
       }
 
-      final imageBytes =
-          await image.readAsBytes();
-
-      ProfileStore.updateProfileImage(
-        imageBytes,
-      );
+      final imageBytes = await image.readAsBytes();
 
       if (!mounted) {
         return;
       }
 
-      setState(() {});
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Profile photo updated.',
-          ),
-          duration: Duration(
-            seconds: 1,
-          ),
-        ),
-      );
+      setState(() => _pendingPhoto = imageBytes);
     } catch (error) {
       if (!mounted) {
         return;
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Could not select profile photo.',
-          ),
-        ),
+        const SnackBar(content: Text('Could not select profile photo.')),
       );
+    } finally {
+      if (mounted) setState(() => _pickingPhoto = false);
     }
   }
 
@@ -116,25 +98,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   // ==========================================================
 
   void _saveProfile() {
-    final displayName =
-        _displayNameController.text.trim();
+    if (_pickingPhoto) return;
+    final displayName = _displayNameController.text.trim();
 
-    String username =
-        _usernameController.text.trim();
+    String username = _usernameController.text;
 
-    final bio =
-        _bioController.text.trim();
+    final bio = _bioController.text.trim();
 
-    if (displayName.isEmpty) {
-      _showMessage(
-        'Display name cannot be empty.',
-      );
+    if (displayName.characters.length < 2) {
+      _showMessage('Display name must contain at least 2 characters.');
       return;
     }
 
-    if (username.isEmpty) {
+    if (!RegExp(r'^@?[A-Za-z0-9_]{3,20}$').hasMatch(username)) {
       _showMessage(
-        'Username cannot be empty.',
+        'Username must be 3–20 characters: letters, numbers or underscores only (optional @). No spaces.',
       );
       return;
     }
@@ -143,10 +121,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       username = '@$username';
     }
 
-    if (bio.length > 120) {
-      _showMessage(
-        'Bio must be 120 characters or less.',
-      );
+    if (bio.characters.length > 120) {
+      _showMessage('Bio must be 120 characters or less.');
       return;
     }
 
@@ -154,19 +130,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       displayName: displayName,
       username: username,
       bio: bio,
+      profileImageBytes: _pendingPhoto,
+      removeProfileImage: _pendingPhoto == null,
     );
 
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Profile saved.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
     Navigator.pop(context);
   }
 
-  void _showMessage(
-    String message,
-  ) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
-    );
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   // ==========================================================
@@ -175,9 +157,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profile =
-        ProfileStore.profile.value;
-
     return Scaffold(
       backgroundColor: Colors.black,
 
@@ -188,15 +167,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
         title: const Text(
           'Edit Profile',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
 
         actions: [
           TextButton(
-            onPressed: _saveProfile,
+            onPressed: _pickingPhoto ? null : _saveProfile,
             child: const Text(
               'Save',
               style: TextStyle(
@@ -210,19 +186,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
 
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          20,
-          18,
-          20,
-          35,
-        ),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 35),
 
         child: Column(
           children: [
             // ==================================================
             // PROFILE PHOTO
             // ==================================================
-
             Stack(
               children: [
                 Container(
@@ -230,32 +200,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   height: 100,
 
                   decoration: BoxDecoration(
-                    color: const Color(
-                      0xFF6C63FF,
-                    ),
+                    color: const Color(0xFF6C63FF),
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white24,
-                      width: 2,
-                    ),
+                    border: Border.all(color: Colors.white24, width: 2),
                   ),
 
                   child: ClipOval(
-                    child:
-                        profile.profileImageBytes !=
-                                null
-                            ? Image.memory(
-                                profile
-                                    .profileImageBytes!,
-                                width: 100,
-                                height: 100,
-                                fit: BoxFit.cover,
-                              )
-                            : const Icon(
-                                Icons.person,
-                                color: Colors.white,
-                                size: 58,
-                              ),
+                    child: _pendingPhoto != null
+                        ? Image.memory(
+                            _pendingPhoto!,
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.cover,
+                          )
+                        : const Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 58,
+                          ),
                   ),
                 ),
 
@@ -264,16 +226,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   bottom: 0,
 
                   child: GestureDetector(
-                    onTap: _changeProfilePhoto,
+                    onTap: _pickingPhoto ? null : _changeProfilePhoto,
 
                     child: Container(
                       width: 34,
                       height: 34,
 
-                      decoration:
-                          const BoxDecoration(
-                        color:
-                            Color(0xFF6C63FF),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF6C63FF),
                         shape: BoxShape.circle,
                       ),
 
@@ -291,7 +251,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             const SizedBox(height: 8),
 
             TextButton(
-              onPressed: _changeProfilePhoto,
+              onPressed: _pickingPhoto ? null : _changeProfilePhoto,
 
               child: const Text(
                 'Change profile photo',
@@ -302,15 +262,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
 
+            if (_pendingPhoto != null)
+              TextButton(
+                onPressed: _pickingPhoto
+                    ? null
+                    : () => setState(() => _pendingPhoto = null),
+                child: const Text('Remove Photo'),
+              ),
+            const Text(
+              'Photo changes apply when you save.',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
             const SizedBox(height: 24),
 
             // ==================================================
             // DISPLAY NAME
             // ==================================================
-
             _buildTextField(
-              controller:
-                  _displayNameController,
+              controller: _displayNameController,
               label: 'Display Name',
               hint: 'Enter your name',
               icon: Icons.badge_outlined,
@@ -321,14 +290,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             // ==================================================
             // USERNAME
             // ==================================================
-
             _buildTextField(
-              controller:
-                  _usernameController,
+              controller: _usernameController,
               label: 'Username',
               hint: '@username',
-              icon:
-                  Icons.alternate_email,
+              icon: Icons.alternate_email,
             ),
 
             const SizedBox(height: 18),
@@ -336,15 +302,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             // ==================================================
             // BIO
             // ==================================================
-
             _buildTextField(
-              controller:
-                  _bioController,
+              controller: _bioController,
               label: 'Bio',
-              hint:
-                  'Tell people about yourself...',
-              icon:
-                  Icons.description_outlined,
+              hint: 'Tell people about yourself...',
+              icon: Icons.description_outlined,
               maxLines: 4,
               maxLength: 120,
             ),
@@ -354,56 +316,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             // ==================================================
             // SAVE BUTTON
             // ==================================================
-
             SizedBox(
               width: double.infinity,
               height: 50,
 
               child: ElevatedButton.icon(
-                onPressed: _saveProfile,
+                onPressed: _pickingPhoto ? null : _saveProfile,
 
-                icon: const Icon(
-                  Icons.check,
-                ),
+                icon: const Icon(Icons.check),
 
                 label: const Text(
                   'Save Changes',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight:
-                        FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
 
-                style:
-                    ElevatedButton.styleFrom(
-                  backgroundColor:
-                      const Color(
-                    0xFF6C63FF,
-                  ),
-                  foregroundColor:
-                      Colors.white,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6C63FF),
+                  foregroundColor: Colors.white,
 
-                  shape:
-                      RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(
-                      14,
-                    ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
               ),
             ),
 
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
             const SizedBox(height: 18),
 
             const Text(
               'Profile information is stored locally for the current demo.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ],
         ),
@@ -428,71 +375,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       maxLines: maxLines,
       maxLength: maxLength,
 
-      style: const TextStyle(
-        color: Colors.white,
-      ),
+      style: const TextStyle(color: Colors.white),
 
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
 
-        labelStyle: const TextStyle(
-          color: Colors.grey,
-        ),
+        labelStyle: const TextStyle(color: Colors.grey),
 
-        hintStyle: const TextStyle(
-          color: Colors.white38,
-        ),
+        hintStyle: const TextStyle(color: Colors.white38),
 
-        prefixIcon: Icon(
-          icon,
-          color: const Color(
-            0xFF6C63FF,
-          ),
-        ),
+        prefixIcon: Icon(icon, color: const Color(0xFF6C63FF)),
 
         filled: true,
 
-        fillColor:
-            const Color(
-          0xFF1C1C1C,
+        fillColor: const Color(0xFF1C1C1C),
+
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
         ),
 
-        border:
-            OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(
-            14,
-          ),
-          borderSide:
-              BorderSide.none,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Colors.white12),
         ),
 
-        enabledBorder:
-            OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(
-            14,
-          ),
-          borderSide:
-              const BorderSide(
-            color: Colors.white12,
-          ),
-        ),
-
-        focusedBorder:
-            OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(
-            14,
-          ),
-          borderSide:
-              const BorderSide(
-            color: Color(
-              0xFF6C63FF,
-            ),
-            width: 2,
-          ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFF6C63FF), width: 2),
         ),
       ),
     );

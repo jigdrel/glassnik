@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/foundation.dart';
 
 class UserProfile {
@@ -31,6 +29,7 @@ class UserProfile {
     int? following,
     int? posts,
     Uint8List? profileImageBytes,
+    bool removeProfileImage = false,
   }) {
     return UserProfile(
       displayName: displayName ?? this.displayName,
@@ -39,15 +38,15 @@ class UserProfile {
       followers: followers ?? this.followers,
       following: following ?? this.following,
       posts: posts ?? this.posts,
-      profileImageBytes:
-          profileImageBytes ?? this.profileImageBytes,
+      profileImageBytes: removeProfileImage
+          ? null
+          : profileImageBytes ?? this.profileImageBytes,
     );
   }
 }
 
 class ProfileStore {
-  static final ValueNotifier<UserProfile> profile =
-      ValueNotifier<UserProfile>(
+  static final ValueNotifier<UserProfile> profile = ValueNotifier<UserProfile>(
     const UserProfile(
       displayName: 'Glassnik User',
       username: '@glassnik',
@@ -62,19 +61,19 @@ class ProfileStore {
     required String displayName,
     required String username,
     required String bio,
+    Uint8List? profileImageBytes,
+    bool removeProfileImage = false,
   }) {
     profile.value = profile.value.copyWith(
       displayName: displayName,
       username: username,
       bio: bio,
+      profileImageBytes: profileImageBytes,
+      removeProfileImage: removeProfileImage,
     );
   }
 
-  static void updateProfileImage(
-    Uint8List imageBytes,
-  ) {
-    profile.value = profile.value.copyWith(
-      profileImageBytes: imageBytes,
-    );
+  static void updateProfileImage(Uint8List imageBytes) {
+    profile.value = profile.value.copyWith(profileImageBytes: imageBytes);
   }
 }
