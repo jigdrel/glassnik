@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/demo_video_post.dart';
 import '../services/demo_post_store.dart';
+import '../services/connections_store.dart';
 import '../services/profile_store.dart';
 import '../widgets/video_post_card.dart';
 
@@ -56,24 +57,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         centerTitle: true,
         title: const Text(
           'Profile',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
             tooltip: 'Settings',
-            icon: const Icon(
-              Icons.settings_outlined,
-              color: Colors.white,
-            ),
+            icon: const Icon(Icons.settings_outlined, color: Colors.white),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const SettingsScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
               );
             },
           ),
@@ -422,11 +415,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 // ==========================================================
 
 class _ProfileStat extends StatelessWidget {
-  const _ProfileStat({
-    required this.number,
-    required this.label,
-    this.onTap,
-  });
+  const _ProfileStat({required this.number, required this.label, this.onTap});
 
   final String number;
   final String label;
@@ -459,9 +448,7 @@ class _ProfileStat extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: 12,
-                  color: onTap != null
-                      ? Colors.white70
-                      : Colors.grey,
+                  color: onTap != null ? Colors.white70 : Colors.grey,
                 ),
               ),
             ],
@@ -477,15 +464,11 @@ class _ProfileStat extends StatelessWidget {
 // ==========================================================
 
 class _ProfileVideoTile extends StatelessWidget {
-  const _ProfileVideoTile({
-    required this.post,
-  });
+  const _ProfileVideoTile({required this.post});
 
   final DemoVideoPost post;
 
-  void _openVideo(
-    BuildContext context,
-  ) {
+  void _openVideo(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -493,17 +476,11 @@ class _ProfileVideoTile extends StatelessWidget {
           backgroundColor: Colors.black,
           appBar: AppBar(
             backgroundColor: Colors.black,
-            title: const Text(
-              'Video',
-            ),
+            title: const Text('Video'),
           ),
           body: SingleChildScrollView(
-            padding: const EdgeInsets.all(
-              12,
-            ),
-            child: VideoPostCard(
-              post: post,
-            ),
+            padding: const EdgeInsets.all(12),
+            child: VideoPostCard(post: post),
           ),
         ),
       ),
@@ -522,21 +499,15 @@ class _ProfileVideoTile extends StatelessWidget {
         ),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(
-              0xFF1C1C1C,
-            ),
-            border: Border.all(
-              color: Colors.white10,
-            ),
+            color: const Color(0xFF1C1C1C),
+            border: Border.all(color: Colors.white10),
           ),
           child: Stack(
             fit: StackFit.expand,
             children: [
               // VIDEO PLACEHOLDER
               Container(
-                color: const Color(
-                  0xFF242424,
-                ),
+                color: const Color(0xFF242424),
                 child: const Icon(
                   Icons.movie_outlined,
                   size: 38,
