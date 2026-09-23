@@ -20,11 +20,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final AuthService _authService = AuthService();
 
   void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$feature is coming soon.'),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$feature is coming soon.')));
   }
 
   Future<void> _showLogoutDialog() async {
@@ -33,9 +31,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Log Out'),
-          content: const Text(
-            'Are you sure you want to log out?',
-          ),
+          content: const Text('Are you sure you want to log out?'),
           actions: [
             TextButton(
               onPressed: () {
@@ -49,9 +45,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
               child: const Text(
                 'Log Out',
-                style: TextStyle(
-                  color: Colors.redAccent,
-                ),
+                style: TextStyle(color: Colors.redAccent),
               ),
             ),
           ],
@@ -74,9 +68,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // screen underneath so they cannot navigate back into
     // the logged-in app.
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (_) => const LoginScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
       (route) => false,
     );
   }
@@ -88,21 +80,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final backgroundColor = isDark
-        ? Colors.black
-        : const Color(0xFFF5F5F7);
+    final backgroundColor = isDark ? Colors.black : const Color(0xFFF5F5F7);
 
-    final primaryText =
-        isDark ? Colors.white : Colors.black87;
+    final primaryText = isDark ? Colors.white : Colors.black87;
 
-    final secondaryText =
-        isDark ? Colors.grey : Colors.black54;
+    final secondaryText = isDark ? Colors.grey : Colors.black54;
 
-    final iconColor =
-        isDark ? Colors.white70 : Colors.black54;
+    final iconColor = isDark ? Colors.white70 : Colors.black54;
 
-    final dividerColor =
-        isDark ? Colors.white12 : Colors.black12;
+    final dividerColor = isDark ? Colors.white12 : Colors.black12;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -113,20 +99,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         foregroundColor: primaryText,
         title: Text(
           'Settings',
-          style: TextStyle(
-            color: primaryText,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: primaryText, fontWeight: FontWeight.bold),
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.only(
-          bottom: 30,
-        ),
+        padding: const EdgeInsets.only(bottom: 30),
         children: [
-          const _SectionTitle(
-            title: 'Account',
-          ),
+          const _SectionTitle(title: 'Account'),
 
           _SettingsTile(
             icon: Icons.person_outline,
@@ -159,40 +138,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) =>
-                      const PrivacySettingsScreen(),
+                  builder: (_) => const PrivacySettingsScreen(),
                 ),
               );
             },
           ),
 
-          Divider(
-            color: dividerColor,
-            height: 30,
-          ),
+          Divider(color: dividerColor, height: 30),
 
-          const _SectionTitle(
-            title: 'Preferences',
-          ),
+          const _SectionTitle(title: 'Preferences'),
 
           SwitchListTile(
             value: _notificationsEnabled,
             activeThumbColor: const Color(0xFF6C63FF),
-            secondary: Icon(
-              Icons.notifications_outlined,
-              color: iconColor,
-            ),
-            title: Text(
-              'Notifications',
-              style: TextStyle(
-                color: primaryText,
-              ),
-            ),
+            secondary: Icon(Icons.notifications_outlined, color: iconColor),
+            title: Text('Notifications', style: TextStyle(color: primaryText)),
             subtitle: Text(
               'Receive activity notifications',
-              style: TextStyle(
-                color: secondaryText,
-              ),
+              style: TextStyle(color: secondaryText),
             ),
             onChanged: (value) {
               setState(() {
@@ -204,37 +167,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // REAL DARK MODE SWITCH
           ValueListenableBuilder<ThemeMode>(
             valueListenable: ThemeStore.themeMode,
-            builder: (
-              context,
-              themeMode,
-              child,
-            ) {
-              final darkEnabled =
-                  themeMode == ThemeMode.dark;
+            builder: (context, themeMode, child) {
+              final darkEnabled = themeMode == ThemeMode.dark;
 
               return SwitchListTile(
                 value: darkEnabled,
-                activeThumbColor:
-                    const Color(0xFF6C63FF),
+                activeThumbColor: const Color(0xFF6C63FF),
                 secondary: Icon(
                   darkEnabled
                       ? Icons.dark_mode_outlined
                       : Icons.light_mode_outlined,
                   color: iconColor,
                 ),
-                title: Text(
-                  'Dark Mode',
-                  style: TextStyle(
-                    color: primaryText,
-                  ),
-                ),
+                title: Text('Dark Mode', style: TextStyle(color: primaryText)),
                 subtitle: Text(
                   darkEnabled
                       ? 'Use Glassnik dark appearance'
                       : 'Use Glassnik light appearance',
-                  style: TextStyle(
-                    color: secondaryText,
-                  ),
+                  style: TextStyle(color: secondaryText),
                 ),
                 onChanged: (value) {
                   ThemeStore.setDarkMode(value);
@@ -243,14 +193,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
 
-          Divider(
-            color: dividerColor,
-            height: 30,
-          ),
+          Divider(color: dividerColor, height: 30),
 
-          const _SectionTitle(
-            title: 'About',
-          ),
+          const _SectionTitle(title: 'About'),
 
           _SettingsTile(
             icon: Icons.info_outline,
@@ -290,16 +235,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
 
-          Divider(
-            color: dividerColor,
-            height: 30,
-          ),
+          Divider(color: dividerColor, height: 30),
 
           ListTile(
-            leading: const Icon(
-              Icons.logout,
-              color: Colors.redAccent,
-            ),
+            leading: const Icon(Icons.logout, color: Colors.redAccent),
             title: const Text(
               'Log Out',
               style: TextStyle(
@@ -315,10 +254,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Center(
             child: Text(
               'Glassnik • Demo Version',
-              style: TextStyle(
-                color: secondaryText,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: secondaryText, fontSize: 12),
             ),
           ),
         ],
@@ -328,21 +264,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({
-    required this.title,
-  });
+  const _SectionTitle({required this.title});
 
   final String title;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        18,
-        12,
-        18,
-        8,
-      ),
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
       child: Text(
         title.toUpperCase(),
         style: const TextStyle(
@@ -378,28 +307,16 @@ class _SettingsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(
-        icon,
-        color: iconColor,
-      ),
+      leading: Icon(icon, color: iconColor),
       title: Text(
         title,
-        style: TextStyle(
-          color: primaryText,
-          fontWeight: FontWeight.w500,
-        ),
+        style: TextStyle(color: primaryText, fontWeight: FontWeight.w500),
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(
-          color: secondaryText,
-          fontSize: 12,
-        ),
+        style: TextStyle(color: secondaryText, fontSize: 12),
       ),
-      trailing: Icon(
-        Icons.chevron_right,
-        color: secondaryText,
-      ),
+      trailing: Icon(Icons.chevron_right, color: secondaryText),
       onTap: onTap,
     );
   }

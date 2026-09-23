@@ -4,12 +4,10 @@ class PrivacySettingsScreen extends StatefulWidget {
   const PrivacySettingsScreen({super.key});
 
   @override
-  State<PrivacySettingsScreen> createState() =>
-      _PrivacySettingsScreenState();
+  State<PrivacySettingsScreen> createState() => _PrivacySettingsScreenState();
 }
 
-class _PrivacySettingsScreenState
-    extends State<PrivacySettingsScreen> {
+class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
   bool _privateAccount = false;
   bool _allowComments = true;
   bool _allowSharing = true;
@@ -17,10 +15,7 @@ class _PrivacySettingsScreenState
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 1),
-      ),
+      SnackBar(content: Text(message), duration: const Duration(seconds: 1)),
     );
   }
 
@@ -35,25 +30,15 @@ class _PrivacySettingsScreenState
         centerTitle: true,
         title: const Text(
           'Privacy',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
 
       body: ListView(
-        padding: const EdgeInsets.only(
-          bottom: 30,
-        ),
+        padding: const EdgeInsets.only(bottom: 30),
         children: [
           const Padding(
-            padding: EdgeInsets.fromLTRB(
-              18,
-              18,
-              18,
-              8,
-            ),
+            padding: EdgeInsets.fromLTRB(18, 18, 18, 8),
             child: Text(
               'ACCOUNT PRIVACY',
               style: TextStyle(
@@ -68,10 +53,7 @@ class _PrivacySettingsScreenState
           SwitchListTile(
             value: _privateAccount,
             activeThumbColor: const Color(0xFF6C63FF),
-            secondary: const Icon(
-              Icons.lock_outline,
-              color: Colors.white70,
-            ),
+            secondary: const Icon(Icons.lock_outline, color: Colors.white70),
             title: const Text(
               'Private Account',
               style: TextStyle(
@@ -81,10 +63,7 @@ class _PrivacySettingsScreenState
             ),
             subtitle: const Text(
               'Only approved followers can see your videos.',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
             onChanged: (value) {
               setState(() {
@@ -92,25 +71,15 @@ class _PrivacySettingsScreenState
               });
 
               _showMessage(
-                value
-                    ? 'Private account enabled'
-                    : 'Private account disabled',
+                value ? 'Private account enabled' : 'Private account disabled',
               );
             },
           ),
 
-          const Divider(
-            color: Colors.white12,
-            height: 28,
-          ),
+          const Divider(color: Colors.white12, height: 28),
 
           const Padding(
-            padding: EdgeInsets.fromLTRB(
-              18,
-              8,
-              18,
-              8,
-            ),
+            padding: EdgeInsets.fromLTRB(18, 8, 18, 8),
             child: Text(
               'INTERACTIONS',
               style: TextStyle(
@@ -131,49 +100,32 @@ class _PrivacySettingsScreenState
             ),
             title: const Text(
               'Allow Comments',
-              style: TextStyle(
-                color: Colors.white,
-              ),
+              style: TextStyle(color: Colors.white),
             ),
             subtitle: const Text(
               'Allow other users to comment on your videos.',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
             onChanged: (value) {
               setState(() {
                 _allowComments = value;
               });
 
-              _showMessage(
-                value
-                    ? 'Comments enabled'
-                    : 'Comments disabled',
-              );
+              _showMessage(value ? 'Comments enabled' : 'Comments disabled');
             },
           ),
 
           SwitchListTile(
             value: _allowSharing,
             activeThumbColor: const Color(0xFF6C63FF),
-            secondary: const Icon(
-              Icons.share_outlined,
-              color: Colors.white70,
-            ),
+            secondary: const Icon(Icons.share_outlined, color: Colors.white70),
             title: const Text(
               'Allow Sharing',
-              style: TextStyle(
-                color: Colors.white,
-              ),
+              style: TextStyle(color: Colors.white),
             ),
             subtitle: const Text(
               'Allow users to share your videos.',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
             onChanged: (value) {
               setState(() {
@@ -181,25 +133,15 @@ class _PrivacySettingsScreenState
               });
 
               _showMessage(
-                value
-                    ? 'Video sharing enabled'
-                    : 'Video sharing disabled',
+                value ? 'Video sharing enabled' : 'Video sharing disabled',
               );
             },
           ),
 
-          const Divider(
-            color: Colors.white12,
-            height: 28,
-          ),
+          const Divider(color: Colors.white12, height: 28),
 
           const Padding(
-            padding: EdgeInsets.fromLTRB(
-              18,
-              8,
-              18,
-              8,
-            ),
+            padding: EdgeInsets.fromLTRB(18, 8, 18, 8),
             child: Text(
               'ACTIVITY',
               style: TextStyle(
@@ -220,16 +162,11 @@ class _PrivacySettingsScreenState
             ),
             title: const Text(
               'Activity Status',
-              style: TextStyle(
-                color: Colors.white,
-              ),
+              style: TextStyle(color: Colors.white),
             ),
             subtitle: const Text(
               'Allow other users to see when you are active.',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
             onChanged: (value) {
               setState(() {
@@ -237,9 +174,7 @@ class _PrivacySettingsScreenState
               });
 
               _showMessage(
-                value
-                    ? 'Activity status visible'
-                    : 'Activity status hidden',
+                value ? 'Activity status visible' : 'Activity status hidden',
               );
             },
           ),
@@ -247,26 +182,18 @@ class _PrivacySettingsScreenState
           const SizedBox(height: 30),
 
           Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 18,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 18),
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: const Color(0xFF1C1C1C),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: Colors.white10,
-                ),
+                border: Border.all(color: Colors.white10),
               ),
               child: const Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 20,
-                    color: Color(0xFF6C63FF),
-                  ),
+                  Icon(Icons.info_outline, size: 20, color: Color(0xFF6C63FF)),
                   SizedBox(width: 10),
                   Expanded(
                     child: Text(

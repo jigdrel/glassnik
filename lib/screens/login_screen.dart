@@ -1,5 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../services/auth_service.dart';
 import 'main_navigation_screen.dart';
 import 'sign_up_screen.dart';
 
@@ -16,6 +18,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
 
   final TextEditingController _passwordController = TextEditingController();
+
+  final AuthService _authService = AuthService();
 
   bool _obscurePassword = true;
   bool _isLoading = false;
@@ -87,22 +91,10 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      /*
-       * TEMPORARY LOGIN
-       *
-       * This currently validates the form only.
-       *
-       * In the next step this will be replaced with:
-       *
-       * FirebaseAuth.instance.signInWithEmailAndPassword(
-       *   email: _emailController.text.trim(),
-       *   password: _passwordController.text,
-       * );
-       *
-       * Do NOT consider this real authentication yet.
-       */
-
-      await Future.delayed(const Duration(milliseconds: 700));
+      await _authService.signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
 
       if (!mounted) return;
 
@@ -111,6 +103,12 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
         (route) => false,
       );
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(authErrorMessage(error))));
     } catch (error) {
       if (!mounted) return;
 
@@ -130,7 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
   // FORGOT PASSWORD
   // -------------------------------------------------------
 
-  void _forgotPassword() {
+  Future<void> _forgotPassword() async {
     final email = _emailController.text.trim();
 
     if (email.isEmpty) {
@@ -153,23 +151,29 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    /*
-     * TODO:
-     *
-     * When Firebase Authentication is connected:
-     *
-     * FirebaseAuth.instance.sendPasswordResetEmail(
-     *   email: email,
-     * );
-     */
+    try {
+      await _authService.sendPasswordResetEmail(email);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Password recovery will be connected with Firebase Authentication.',
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Password reset email sent to $email.')),
+      );
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(authErrorMessage(error))));
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to send reset email. Please try again.'),
         ),
-      ),
-    );
+      );
+    }
   }
 
   // -------------------------------------------------------
@@ -554,18 +558,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ],
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // ------------------------------------------------
-                    // TEMPORARY WARNING
-                    // ------------------------------------------------
-                    const Text(
-                      'Authentication backend is not connected yet.',
-                      textAlign: TextAlign.center,
-
-                      style: TextStyle(color: Colors.white38, fontSize: 11),
                     ),
                   ],
                 ),

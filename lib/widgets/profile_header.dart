@@ -32,28 +32,19 @@ class ProfileHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          UserAvatar(
-            imageUrl: imageUrl,
-            radius: 48,
-          ),
+          UserAvatar(imageUrl: imageUrl, radius: 48),
 
           const SizedBox(height: 12),
 
           Text(
             username,
-            style: textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
 
           const SizedBox(height: 6),
 
-          Text(
-            bio,
-            style: textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
+          Text(bio, style: textTheme.bodyMedium, textAlign: TextAlign.center),
 
           const SizedBox(height: 20),
 

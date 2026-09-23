@@ -14,8 +14,7 @@ class EditProfileScreen extends StatefulWidget {
   final String initialBio;
 
   @override
-  State<EditProfileScreen> createState() =>
-      _EditProfileScreenState();
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
@@ -29,23 +28,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void initState() {
     super.initState();
 
-    final currentProfile =
-        ProfileStore.profile.value;
+    final currentProfile = ProfileStore.profile.value;
 
-    _displayNameController =
-        TextEditingController(
+    _displayNameController = TextEditingController(
       text: currentProfile.displayName,
     );
 
-    _usernameController =
-        TextEditingController(
-      text: widget.initialUsername,
-    );
+    _usernameController = TextEditingController(text: widget.initialUsername);
 
-    _bioController =
-        TextEditingController(
-      text: widget.initialBio,
-    );
+    _bioController = TextEditingController(text: widget.initialBio);
   }
 
   @override
@@ -63,8 +54,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _changeProfilePhoto() async {
     try {
-      final XFile? image =
-          await _imagePicker.pickImage(
+      final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 80,
       );
@@ -73,12 +63,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         return;
       }
 
-      final imageBytes =
-          await image.readAsBytes();
+      final imageBytes = await image.readAsBytes();
 
-      ProfileStore.updateProfileImage(
-        imageBytes,
-      );
+      ProfileStore.updateProfileImage(imageBytes);
 
       if (!mounted) {
         return;
@@ -88,12 +75,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Profile photo updated.',
-          ),
-          duration: Duration(
-            seconds: 1,
-          ),
+          content: Text('Profile photo updated.'),
+          duration: Duration(seconds: 1),
         ),
       );
     } catch (error) {
@@ -102,11 +85,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Could not select profile photo.',
-          ),
-        ),
+        const SnackBar(content: Text('Could not select profile photo.')),
       );
     }
   }
@@ -116,26 +95,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   // ==========================================================
 
   void _saveProfile() {
-    final displayName =
-        _displayNameController.text.trim();
+    final displayName = _displayNameController.text.trim();
 
-    String username =
-        _usernameController.text.trim();
+    String username = _usernameController.text.trim();
 
-    final bio =
-        _bioController.text.trim();
+    final bio = _bioController.text.trim();
 
     if (displayName.isEmpty) {
-      _showMessage(
-        'Display name cannot be empty.',
-      );
+      _showMessage('Display name cannot be empty.');
       return;
     }
 
     if (username.isEmpty) {
-      _showMessage(
-        'Username cannot be empty.',
-      );
+      _showMessage('Username cannot be empty.');
       return;
     }
 
@@ -144,9 +116,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     if (bio.length > 120) {
-      _showMessage(
-        'Bio must be 120 characters or less.',
-      );
+      _showMessage('Bio must be 120 characters or less.');
       return;
     }
 
@@ -159,14 +129,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     Navigator.pop(context);
   }
 
-  void _showMessage(
-    String message,
-  ) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
-    );
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   // ==========================================================
@@ -175,8 +141,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profile =
-        ProfileStore.profile.value;
+    final profile = ProfileStore.profile.value;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -188,10 +153,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
         title: const Text(
           'Edit Profile',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
 
         actions: [
@@ -210,19 +172,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
 
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          20,
-          18,
-          20,
-          35,
-        ),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 35),
 
         child: Column(
           children: [
             // ==================================================
             // PROFILE PHOTO
             // ==================================================
-
             Stack(
               children: [
                 Container(
@@ -230,32 +186,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   height: 100,
 
                   decoration: BoxDecoration(
-                    color: const Color(
-                      0xFF6C63FF,
-                    ),
+                    color: const Color(0xFF6C63FF),
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white24,
-                      width: 2,
-                    ),
+                    border: Border.all(color: Colors.white24, width: 2),
                   ),
 
                   child: ClipOval(
-                    child:
-                        profile.profileImageBytes !=
-                                null
-                            ? Image.memory(
-                                profile
-                                    .profileImageBytes!,
-                                width: 100,
-                                height: 100,
-                                fit: BoxFit.cover,
-                              )
-                            : const Icon(
-                                Icons.person,
-                                color: Colors.white,
-                                size: 58,
-                              ),
+                    child: profile.profileImageBytes != null
+                        ? Image.memory(
+                            profile.profileImageBytes!,
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.cover,
+                          )
+                        : const Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 58,
+                          ),
                   ),
                 ),
 
@@ -270,10 +218,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       width: 34,
                       height: 34,
 
-                      decoration:
-                          const BoxDecoration(
-                        color:
-                            Color(0xFF6C63FF),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF6C63FF),
                         shape: BoxShape.circle,
                       ),
 
@@ -307,10 +253,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             // ==================================================
             // DISPLAY NAME
             // ==================================================
-
             _buildTextField(
-              controller:
-                  _displayNameController,
+              controller: _displayNameController,
               label: 'Display Name',
               hint: 'Enter your name',
               icon: Icons.badge_outlined,
@@ -321,14 +265,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             // ==================================================
             // USERNAME
             // ==================================================
-
             _buildTextField(
-              controller:
-                  _usernameController,
+              controller: _usernameController,
               label: 'Username',
               hint: '@username',
-              icon:
-                  Icons.alternate_email,
+              icon: Icons.alternate_email,
             ),
 
             const SizedBox(height: 18),
@@ -336,15 +277,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             // ==================================================
             // BIO
             // ==================================================
-
             _buildTextField(
-              controller:
-                  _bioController,
+              controller: _bioController,
               label: 'Bio',
-              hint:
-                  'Tell people about yourself...',
-              icon:
-                  Icons.description_outlined,
+              hint: 'Tell people about yourself...',
+              icon: Icons.description_outlined,
               maxLines: 4,
               maxLength: 120,
             ),
@@ -354,7 +291,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             // ==================================================
             // SAVE BUTTON
             // ==================================================
-
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -362,34 +298,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               child: ElevatedButton.icon(
                 onPressed: _saveProfile,
 
-                icon: const Icon(
-                  Icons.check,
-                ),
+                icon: const Icon(Icons.check),
 
                 label: const Text(
                   'Save Changes',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight:
-                        FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
 
-                style:
-                    ElevatedButton.styleFrom(
-                  backgroundColor:
-                      const Color(
-                    0xFF6C63FF,
-                  ),
-                  foregroundColor:
-                      Colors.white,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6C63FF),
+                  foregroundColor: Colors.white,
 
-                  shape:
-                      RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(
-                      14,
-                    ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
               ),
@@ -400,10 +321,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             const Text(
               'Profile information is stored locally for the current demo.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ],
         ),
@@ -428,71 +346,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       maxLines: maxLines,
       maxLength: maxLength,
 
-      style: const TextStyle(
-        color: Colors.white,
-      ),
+      style: const TextStyle(color: Colors.white),
 
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
 
-        labelStyle: const TextStyle(
-          color: Colors.grey,
-        ),
+        labelStyle: const TextStyle(color: Colors.grey),
 
-        hintStyle: const TextStyle(
-          color: Colors.white38,
-        ),
+        hintStyle: const TextStyle(color: Colors.white38),
 
-        prefixIcon: Icon(
-          icon,
-          color: const Color(
-            0xFF6C63FF,
-          ),
-        ),
+        prefixIcon: Icon(icon, color: const Color(0xFF6C63FF)),
 
         filled: true,
 
-        fillColor:
-            const Color(
-          0xFF1C1C1C,
+        fillColor: const Color(0xFF1C1C1C),
+
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
         ),
 
-        border:
-            OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(
-            14,
-          ),
-          borderSide:
-              BorderSide.none,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Colors.white12),
         ),
 
-        enabledBorder:
-            OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(
-            14,
-          ),
-          borderSide:
-              const BorderSide(
-            color: Colors.white12,
-          ),
-        ),
-
-        focusedBorder:
-            OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(
-            14,
-          ),
-          borderSide:
-              const BorderSide(
-            color: Color(
-              0xFF6C63FF,
-            ),
-            width: 2,
-          ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFF6C63FF), width: 2),
         ),
       ),
     );
