@@ -36,14 +36,13 @@ dependencies:
   cupertino_icons: ^1.0.8
   video_player: 2.11.1
   image_picker: ^1.2.3
-  firebase_auth: ^6.7.0
   firebase_core: ^4.15.0
+  firebase_auth: ^6.7.0
+  cloud_firestore: ^6.10.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  
- 
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

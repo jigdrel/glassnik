@@ -1,3 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
 class UserProfile {
@@ -46,34 +49,161 @@ class UserProfile {
 }
 
 class ProfileStore {
+  // Temporary empty profile while Firebase data is loading.
   static final ValueNotifier<UserProfile> profile = ValueNotifier<UserProfile>(
     const UserProfile(
-      displayName: 'Glassnik User',
-      username: '@glassnik',
-      bio: 'Creating and sharing moments on Glassnik 🎥',
-      followers: 124,
-      following: 42,
-      posts: 3,
+      displayName: 'Loading...',
+      username: '',
+      bio: '',
+      followers: 0,
+      following: 0,
+      posts: 0,
     ),
   );
 
-  static void updateProfile({
+  // -------------------------------------------------------
+  // LOAD CURRENT USER PROFILE FROM FIRESTORE
+  // -------------------------------------------------------
+
+  static Future<void> loadCurrentUserProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      profile.value = const UserProfile(
+        displayName: 'Guest',
+        username: '',
+        bio: '',
+        followers: 0,
+        following: 0,
+        posts: 0,
+      );
+
+      return;
+    }
+
+    try {
+      final document = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (document.exists) {
+        final data = document.data()!;
+
+        String username = (data['username'] ?? '').toString().trim();
+
+        if (username.isNotEmpty && !username.startsWith('@')) {
+          username = '@$username';
+        }
+
+        profile.value = UserProfile(
+          displayName:
+              (data['displayName'] ?? user.displayName ?? 'Glassnik User')
+                  .toString(),
+          username: username,
+          bio: (data['bio'] ?? '').toString(),
+          followers: _toInt(data['followers']),
+          following: _toInt(data['following']),
+          posts: _toInt(data['posts']),
+        );
+      } else {
+        // Older Firebase accounts may not have a
+        // Firestore profile document yet.
+        profile.value = UserProfile(
+          displayName: user.displayName ?? 'Glassnik User',
+          username: '',
+          bio: '',
+          followers: 0,
+          following: 0,
+          posts: 0,
+        );
+      }
+    } catch (error) {
+      debugPrint('Error loading user profile: $error');
+
+      profile.value = UserProfile(
+        displayName: user.displayName ?? 'Glassnik User',
+        username: '',
+        bio: '',
+        followers: 0,
+        following: 0,
+        posts: 0,
+      );
+    }
+  }
+
+  // -------------------------------------------------------
+  // UPDATE PROFILE
+  // -------------------------------------------------------
+
+  static Future<void> updateProfile({
     required String displayName,
     required String username,
     required String bio,
     Uint8List? profileImageBytes,
     bool removeProfileImage = false,
-  }) {
+  }) async {
+    // Keep the standalone local editor usable without initializing Firebase.
+    // In the integrated app, preserve the authenticated Firestore save path.
+    if (Firebase.apps.isEmpty) {
+      profile.value = profile.value.copyWith(
+        displayName: displayName.trim(),
+        username: username.startsWith('@') ? username : '@$username',
+        bio: bio.trim(),
+        profileImageBytes: profileImageBytes,
+        removeProfileImage: removeProfileImage,
+      );
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      throw Exception('No user is currently signed in.');
+    }
+
+    final cleanUsername = username.replaceFirst('@', '').trim().toLowerCase();
+
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+      'uid': user.uid,
+      'displayName': displayName.trim(),
+      'username': cleanUsername,
+      'email': user.email,
+      'bio': bio.trim(),
+    }, SetOptions(merge: true));
+
+    await user.updateDisplayName(displayName.trim());
+
     profile.value = profile.value.copyWith(
-      displayName: displayName,
-      username: username,
-      bio: bio,
+      displayName: displayName.trim(),
+      username: cleanUsername.isEmpty ? '' : '@$cleanUsername',
+      bio: bio.trim(),
       profileImageBytes: profileImageBytes,
       removeProfileImage: removeProfileImage,
     );
   }
 
+  // -------------------------------------------------------
+  // UPDATE LOCAL PROFILE IMAGE
+  // -------------------------------------------------------
+
   static void updateProfileImage(Uint8List imageBytes) {
     profile.value = profile.value.copyWith(profileImageBytes: imageBytes);
+  }
+
+  // -------------------------------------------------------
+  // HELPER
+  // -------------------------------------------------------
+
+  static int _toInt(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+
+    if (value is num) {
+      return value.toInt();
+    }
+
+    return 0;
   }
 }
