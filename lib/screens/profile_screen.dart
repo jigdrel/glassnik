@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../models/demo_video_post.dart';
 import '../services/demo_post_store.dart';
-import '../services/connections_store.dart';
 import '../services/profile_store.dart';
 import '../widgets/video_post_card.dart';
 
