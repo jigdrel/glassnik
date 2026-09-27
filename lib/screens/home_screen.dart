@@ -1,11 +1,36 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../models/demo_video_post.dart';
-import '../services/demo_post_store.dart';
+import '../services/post_service.dart';
 import '../widgets/video_post_card.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({
+    super.key,
+  });
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final PostService _postService = PostService();
+
+  DemoVideoPost _postFromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+
+    return DemoVideoPost(
+      id: doc.id,
+      authorId: (data['authorId'] as String?) ?? '',
+      username: (data['authorUsername'] as String?) ?? '@unknown',
+      caption: (data['caption'] as String?) ?? '',
+      videoPath: (data['videoUrl'] as String?) ?? '',
+      isPickedFile: false,
+      likes: 0,
+      comments: const [],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,26 +46,43 @@ class HomeScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
       ),
 
-      body: ValueListenableBuilder<List<DemoVideoPost>>(
-        valueListenable: DemoPostStore.posts,
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _postService.watchFeed(),
 
-        builder: (context, posts, child) {
-          if (posts.isEmpty) {
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 30),
+                child: Text(
+                  'Something went wrong loading the feed.\n${snapshot.error}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.grey),
+                ),
+              ),
+            );
+          }
+
+          if (!snapshot.hasData) {
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF6C63FF)),
+            );
+          }
+
+          final docs = snapshot.data!.docs;
+
+          if (docs.isEmpty) {
             return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.video_library_outlined, size: 60),
-
                   SizedBox(height: 16),
-
                   Text(
                     'No videos yet',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
-
                   SizedBox(height: 8),
-
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 30),
                     child: Text(
@@ -56,10 +98,10 @@ class HomeScreen extends StatelessWidget {
           return ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
 
-            itemCount: posts.length,
+            itemCount: docs.length,
 
             itemBuilder: (context, index) {
-              final post = posts[index];
+              final post = _postFromDoc(docs[index]);
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),

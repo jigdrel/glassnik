@@ -1,5 +1,6 @@
 class DemoVideoPost {
   final String id;
+  final String authorId;
   final String username;
   final String caption;
   final String videoPath;
@@ -9,6 +10,7 @@ class DemoVideoPost {
 
   const DemoVideoPost({
     required this.id,
+    this.authorId = '',
     required this.username,
     required this.caption,
     required this.videoPath,
@@ -19,6 +21,7 @@ class DemoVideoPost {
 
   DemoVideoPost copyWith({
     String? id,
+    String? authorId,
     String? username,
     String? caption,
     String? videoPath,
@@ -28,6 +31,7 @@ class DemoVideoPost {
   }) {
     return DemoVideoPost(
       id: id ?? this.id,
+      authorId: authorId ?? this.authorId,
       username: username ?? this.username,
       caption: caption ?? this.caption,
       videoPath: videoPath ?? this.videoPath,

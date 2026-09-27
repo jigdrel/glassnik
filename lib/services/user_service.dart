@@ -70,4 +70,38 @@ class UserService {
     final doc = await _users.doc(uid).get();
     return doc.data();
   }
+
+  /// Live version of getUserProfile — used by UserProfileScreen so a
+  /// viewed profile updates in real time if the person edits their
+  /// bio/photo while you're looking at it.
+  Stream<DocumentSnapshot<Map<String, dynamic>>> watchUserProfile(
+    String uid,
+  ) {
+    return _users.doc(uid).snapshots();
+  }
+
+  /// Prefix search on username, e.g. "sof" matches "@sofiak" but not
+  /// "@alexsofia" — Firestore range queries only match from the start
+  /// of the field, not a substring anywhere inside it. Good enough
+  /// for a first version of Explore's search; a proper substring or
+  /// fuzzy search would need a dedicated search service (Algolia,
+  /// Typesense, etc.) later if that limitation ever matters.
+  Future<List<Map<String, dynamic>>> searchUsersByUsername(
+    String query, {
+    int limit = 20,
+  }) async {
+    final queryLower = query.trim().toLowerCase();
+
+    if (queryLower.isEmpty) {
+      return [];
+    }
+
+    final snapshot = await _users
+        .where('usernameLower', isGreaterThanOrEqualTo: queryLower)
+        .where('usernameLower', isLessThan: '$queryLower')
+        .limit(limit)
+        .get();
+
+    return snapshot.docs.map((doc) => doc.data()).toList();
+  }
 }

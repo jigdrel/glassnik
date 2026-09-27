@@ -52,8 +52,6 @@ class PostService {
       'caption': caption,
       'genres': genres,
       'musicTrackId': musicTrackId,
-      'likesCount': 0,
-      'commentsCount': 0,
       'createdAt': FieldValue.serverTimestamp(),
     });
 
@@ -71,6 +69,17 @@ class PostService {
     return _posts
         .orderBy('createdAt', descending: true)
         .limit(limit)
+        .snapshots();
+  }
+
+  /// Live stream of just one user's own posts, newest first — used by
+  /// ProfileScreen's "My Videos" grid and UserProfileScreen. Filtered
+  /// server-side by authorId, not a client-side filter of watchFeed(),
+  /// so it stays cheap no matter how big the overall feed gets.
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchUserPosts(String uid) {
+    return _posts
+        .where('authorId', isEqualTo: uid)
+        .orderBy('createdAt', descending: true)
         .snapshots();
   }
 }

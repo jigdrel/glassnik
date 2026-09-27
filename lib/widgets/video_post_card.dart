@@ -1,9 +1,14 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/demo_video_post.dart';
-import '../services/demo_post_store.dart';
+import '../screens/user_profile_screen.dart';
+import '../services/auth_service.dart';
+import '../services/comment_service.dart';
+import '../services/like_service.dart';
+import '../services/user_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/video_controller_factory.dart';
 
@@ -20,7 +25,10 @@ class _VideoPostCardState extends State<VideoPostCard> {
   late final VideoPlayerController _controller;
   late final Future<void> _initializeVideoFuture;
 
-  bool _liked = false;
+  final LikeService _likeService = LikeService();
+  final CommentService _commentService = CommentService();
+  final UserService _userService = UserService();
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -55,10 +63,27 @@ class _VideoPostCardState extends State<VideoPostCard> {
     });
   }
 
-  void _toggleLike() {
-    setState(() {
-      _liked = !_liked;
-    });
+  Future<void> _toggleLike() async {
+    final uid = _authService.currentUser?.uid;
+    if (uid == null) return;
+
+    // No optimistic setState here — the StreamBuilder wrapping the
+    // like button already updates the instant Firestore confirms the
+    // write, which for a single small document is fast enough that a
+    // separate local "pending" state would be more complexity than
+    // it's worth.
+    await _likeService.toggleLike(postId: widget.post.id, uid: uid);
+  }
+
+  void _openAuthorProfile() {
+    if (widget.post.authorId.isEmpty) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => UserProfileScreen(uid: widget.post.authorId),
+      ),
+    );
   }
 
   Future<void> _openCommentDialog() async {
@@ -114,11 +139,35 @@ class _VideoPostCardState extends State<VideoPostCard> {
       return;
     }
 
-    DemoPostStore.addComment(postId: widget.post.id, comment: comment);
+    final user = _authService.currentUser;
+    if (user == null) return;
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Comment added')));
+    // Look up the COMMENTER's own username (not the post's author) —
+    // a small extra read, but the comment needs to be attributed to
+    // whoever is actually posting it.
+    final myProfile = await _userService.getUserProfile(user.uid);
+    final myUsername = (myProfile?['username'] as String?) ?? '@unknown';
+
+    try {
+      await _commentService.addComment(
+        postId: widget.post.id,
+        authorId: user.uid,
+        authorUsername: myUsername,
+        text: comment,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Comment added')));
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not post comment: $error')),
+      );
+    }
   }
 
   Future<void> _sharePost() async {
@@ -144,10 +193,8 @@ https://glassnik.app/post/${widget.post.id}
 
   @override
   Widget build(BuildContext context) {
-    final likeCount = widget.post.likes + (_liked ? 1 : 0);
-    final commentCount = widget.post.comments.length;
-
     final theme = Theme.of(context);
+    final myUid = _authService.currentUser?.uid;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -161,22 +208,25 @@ https://glassnik.app/post/${widget.post.id}
         children: [
           Padding(
             padding: const EdgeInsets.all(14),
-            child: Row(
-              children: [
-                const CircleAvatar(
-                  radius: 20,
-                  backgroundColor: AppColors.primary,
-                  child: Icon(Icons.person, color: Colors.white),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  widget.post.username,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+            child: InkWell(
+              onTap: _openAuthorProfile,
+              child: Row(
+                children: [
+                  const CircleAvatar(
+                    radius: 20,
+                    backgroundColor: AppColors.primary,
+                    child: Icon(Icons.person, color: Colors.white),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Text(
+                    widget.post.username,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -227,16 +277,34 @@ https://glassnik.app/post/${widget.post.id}
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             child: Row(
               children: [
-                IconButton(
-                  onPressed: _toggleLike,
-                  tooltip: 'Like',
-                  icon: Icon(
-                    _liked ? Icons.favorite : Icons.favorite_border,
-                    color: _liked ? Colors.red : theme.colorScheme.onSurface,
-                  ),
-                ),
+                // Live like button + count, driven by the
+                // posts/{postId}/likes subcollection rather than a
+                // stored counter (see LikeService for why).
+                StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: _likeService.watchLikes(widget.post.id),
+                  builder: (context, likeSnapshot) {
+                    final likeDocs = likeSnapshot.data?.docs ?? [];
+                    final likeCount = likeDocs.length;
+                    final isLiked =
+                        myUid != null && likeDocs.any((d) => d.id == myUid);
 
-                Text('$likeCount'),
+                    return Row(
+                      children: [
+                        IconButton(
+                          onPressed: _toggleLike,
+                          tooltip: 'Like',
+                          icon: Icon(
+                            isLiked ? Icons.favorite : Icons.favorite_border,
+                            color: isLiked
+                                ? Colors.red
+                                : theme.colorScheme.onSurface,
+                          ),
+                        ),
+                        Text('$likeCount'),
+                      ],
+                    );
+                  },
+                ),
 
                 const SizedBox(width: 12),
 
@@ -246,7 +314,15 @@ https://glassnik.app/post/${widget.post.id}
                   icon: const Icon(Icons.mode_comment_outlined),
                 ),
 
-                Text('$commentCount'),
+                // Live comment count, same subcollection-based
+                // approach as likes.
+                StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: _commentService.watchComments(widget.post.id),
+                  builder: (context, commentSnapshot) {
+                    final commentCount = commentSnapshot.data?.docs.length ?? 0;
+                    return Text('$commentCount');
+                  },
+                ),
 
                 const Spacer(),
 
@@ -267,39 +343,59 @@ https://glassnik.app/post/${widget.post.id}
             ),
           ),
 
-          if (widget.post.comments.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Comments',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+          // Live comments list, replacing the old widget.post.comments
+          // (which only ever held local demo data and is no longer
+          // populated for real posts).
+          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: _commentService.watchComments(widget.post.id),
+            builder: (context, snapshot) {
+              final docs = snapshot.data?.docs ?? [];
 
-                  const SizedBox(height: 8),
+              if (docs.isEmpty) {
+                return const SizedBox.shrink();
+              }
 
-                  ...widget.post.comments.map(
-                    (comment) => Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            '@you ',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          Expanded(child: Text(comment)),
-                        ],
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Comments',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
+
+                    const SizedBox(height: 8),
+
+                    ...docs.map((doc) {
+                      final data = doc.data();
+                      final commentAuthor =
+                          (data['authorUsername'] as String?) ?? '@unknown';
+                      final commentText = (data['text'] as String?) ?? '';
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '$commentAuthor ',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Expanded(child: Text(commentText)),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
