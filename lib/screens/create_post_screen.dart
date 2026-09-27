@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 
+import '../models/demo_video_post.dart';
+import '../services/demo_post_store.dart';
 import '../services/auth_service.dart';
 import '../services/post_service.dart';
 import '../services/storage_service.dart';
@@ -9,7 +11,18 @@ import '../services/user_service.dart';
 import '../utils/video_controller_factory.dart';
 
 class CreatePostScreen extends StatefulWidget {
-  const CreatePostScreen({super.key});
+  const CreatePostScreen({
+    super.key,
+    this.imagePicker,
+    this.publishPost,
+    this.videoControllerFactory = createPickedVideoController,
+  });
+
+  final ImagePicker? imagePicker;
+
+  /// Optional publisher for standalone demos and tests; production uses the backend.
+  final Future<DemoVideoPost> Function(DemoVideoPost)? publishPost;
+  final VideoPlayerController Function(String) videoControllerFactory;
 
   @override
   State<CreatePostScreen> createState() => _CreatePostScreenState();
@@ -18,12 +31,13 @@ class CreatePostScreen extends StatefulWidget {
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final TextEditingController captionController = TextEditingController();
 
-  final ImagePicker _picker = ImagePicker();
+  late final ImagePicker _picker = widget.imagePicker ?? ImagePicker();
+  final Set<String> _selectedHashtags = {};
 
-  final AuthService _authService = AuthService();
-  final UserService _userService = UserService();
-  final StorageService _storageService = StorageService();
-  final PostService _postService = PostService();
+  late final AuthService _authService = AuthService();
+  late final UserService _userService = UserService();
+  late final StorageService _storageService = StorageService();
+  late final PostService _postService = PostService();
 
   XFile? _selectedVideo;
   VideoPlayerController? _previewController;
@@ -40,7 +54,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
     await _previewController?.dispose();
 
-    final VideoPlayerController controller = createPickedVideoController(
+    final VideoPlayerController controller = widget.videoControllerFactory(
       video.path,
     );
 
@@ -75,9 +89,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       return;
     }
 
-    final user = _authService.currentUser;
+    final user = widget.publishPost == null ? _authService.currentUser : null;
 
-    if (user == null) {
+    if (widget.publishPost == null && user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('You need to be signed in to upload a video.'),
@@ -92,37 +106,62 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     });
 
     try {
-      final postId = _postService.newPostId();
-
-      // Read as bytes rather than using dart:io File — this is the
-      // one path that works identically on web, mobile, and desktop.
-      // (A dart:io File built from an image_picker XFile's path does
-      // NOT work on Flutter Web — it throws at runtime.)
-      final videoBytes = await _selectedVideo!.readAsBytes();
-
-      final videoUrl = await _storageService.uploadVideo(
-        uid: user.uid,
-        postId: postId,
-        videoBytes: videoBytes,
-        onProgress: (progress) {
-          if (!mounted) return;
-          setState(() {
-            _uploadProgress = progress;
-          });
-        },
-      );
-
-      final profile = await _userService.getUserProfile(user.uid);
-      final authorUsername =
-          (profile?['username'] as String?) ?? '@unknown';
-
-      await _postService.createPost(
-        postId: postId,
-        authorId: user.uid,
-        authorUsername: authorUsername,
-        videoUrl: videoUrl,
+      final draft = DemoVideoPost(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        ownerId: DemoVideoPost.localOwnerId,
+        username: '@you',
         caption: caption,
+        hashtags: List.unmodifiable(_selectedHashtags),
+        videoPath: _selectedVideo!.path,
+        isPickedFile: true,
       );
+      final tags = draft.allHashtags;
+      final DemoVideoPost published;
+      if (widget.publishPost != null) {
+        published = await widget.publishPost!(draft.copyWith(hashtags: tags));
+      } else {
+        final postId = _postService.newPostId();
+
+        // Read as bytes rather than using dart:io File — this is the
+        // one path that works identically on web, mobile, and desktop.
+        // (A dart:io File built from an image_picker XFile's path does
+        // NOT work on Flutter Web — it throws at runtime.)
+        final videoBytes = await _selectedVideo!.readAsBytes();
+
+        final videoUrl = await _storageService.uploadVideo(
+          uid: user!.uid,
+          postId: postId,
+          videoBytes: videoBytes,
+          onProgress: (progress) {
+            if (!mounted) return;
+            setState(() {
+              _uploadProgress = progress;
+            });
+          },
+        );
+
+        final profile = await _userService.getUserProfile(user.uid);
+        final authorUsername = (profile?['username'] as String?) ?? '@unknown';
+
+        await _postService.createPost(
+          postId: postId,
+          authorId: user.uid,
+          authorUsername: authorUsername,
+          videoUrl: videoUrl,
+          caption: caption,
+          genres: tags,
+        );
+        published = draft.copyWith(
+          id: postId,
+          username: authorUsername,
+          videoPath: videoUrl,
+          isPickedFile: false,
+          hashtags: tags,
+        );
+      }
+
+      // Publish locally only after the backend (or injected publisher) succeeds.
+      DemoPostStore.addPost(published);
 
       if (!mounted) {
         return;
@@ -153,9 +192,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       // Show the real error instead of a generic message — while
       // you're still shaking out bugs like the web/dart:io one,
       // seeing the actual exception text saves a lot of guessing.
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload failed: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Upload failed: $error')));
     }
   }
 
@@ -242,6 +281,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             const SizedBox(height: 20),
 
             TextField(
+              enabled: !_isUploading,
               controller: captionController,
               maxLines: 4,
               maxLength: 150,
@@ -254,6 +294,40 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
             const SizedBox(height: 20),
 
+            const Text(
+              'Hashtags',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: DemoVideoPost.genres
+                  .map(
+                    (genre) => FilterChip(
+                      label: Text('#$genre'),
+                      selected: _selectedHashtags.contains(genre),
+                      selectedColor: const Color(0xFF6C63FF),
+                      checkmarkColor: Colors.white,
+                      labelStyle: TextStyle(
+                        color: _selectedHashtags.contains(genre)
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.onSurface,
+                      ),
+                      onSelected: _isUploading
+                          ? null
+                          : (selected) => setState(() {
+                              if (selected) {
+                                _selectedHashtags.add(genre);
+                              } else {
+                                _selectedHashtags.remove(genre);
+                              }
+                            }),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 20),
             if (_isUploading) ...[
               LinearProgressIndicator(value: _uploadProgress),
               const SizedBox(height: 8),

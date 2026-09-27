@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/demo_video_post.dart';
 import '../services/demo_post_store.dart';
 import '../services/profile_store.dart';
+import '../services/connections_store.dart';
 import '../widgets/video_post_card.dart';
 
 import 'connections_screen.dart';
@@ -10,9 +11,7 @@ import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({
-    super.key,
-  });
+  const ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -33,6 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (error) {
       debugPrint('Unable to load profile: $error');
     } finally {
+      DemoPostStore.migrateLegacyOwnership(ProfileStore.profile.value.username);
       if (mounted) {
         setState(() {
           _isLoadingProfile = false;
@@ -44,28 +44,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // ==========================================================
       // APP BAR
       // ==========================================================
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         automaticallyImplyLeading: false,
         centerTitle: true,
-        title: const Text(
+        title: Text(
           'Profile',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         actions: [
           IconButton(
             tooltip: 'Settings',
-            icon: const Icon(Icons.settings_outlined, color: Colors.white),
+            icon: Icon(
+              Icons.settings_outlined,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                MaterialPageRoute(builder: (_) => SettingsScreen()),
               );
             },
           ),
@@ -76,40 +82,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // BODY
       // ==========================================================
       body: _isLoadingProfile
-          ? const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF6C63FF),
-              ),
-            )
+          ? Center(child: CircularProgressIndicator(color: Color(0xFF6C63FF)))
           : RefreshIndicator(
               onRefresh: _loadProfile,
               child: ValueListenableBuilder<UserProfile>(
                 valueListenable: ProfileStore.profile,
-                builder: (
-                  context,
-                  profile,
-                  child,
-                ) {
-                  return ValueListenableBuilder<List<DemoVideoPost>>(
-                    valueListenable: DemoPostStore.posts,
-                    builder: (
-                      context,
-                      posts,
-                      child,
-                    ) {
-                      final myVideos = posts.where((post) {
-                        return post.username == '@you' ||
-                            post.username == profile.username;
-                      }).toList();
+                builder: (context, profile, child) {
+                  return ListenableBuilder(
+                    listenable: Listenable.merge([
+                      DemoPostStore.posts,
+                      ConnectionsStore.instance,
+                    ]),
+                    builder: (context, child) {
+                      final myVideos = DemoPostStore.currentUserPosts;
 
                       return SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(
-                          18,
-                          12,
-                          18,
-                          30,
-                        ),
+                        physics: AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.fromLTRB(18, 12, 18, 30),
                         child: Column(
                           children: [
                             // ==========================================
@@ -120,9 +109,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               height: 92,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: const Color(0xFF6C63FF),
+                                color: Color(0xFF6C63FF),
                                 border: Border.all(
-                                  color: Colors.white24,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.outlineVariant,
                                   width: 2,
                                 ),
                               ),
@@ -134,7 +125,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         height: 92,
                                         fit: BoxFit.cover,
                                       )
-                                    : const Icon(
+                                    : Icon(
                                         Icons.person,
                                         size: 52,
                                         color: Colors.white,
@@ -142,7 +133,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
 
-                            const SizedBox(height: 14),
+                            SizedBox(height: 14),
 
                             // ==========================================
                             // DISPLAY NAME
@@ -150,14 +141,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Text(
                               profile.displayName,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 22,
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
 
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4),
 
                             // ==========================================
                             // USERNAME
@@ -166,35 +157,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               profile.username.isEmpty
                                   ? '@username'
                                   : profile.username,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 15,
-                                color: Colors.grey,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                             ),
 
-                            const SizedBox(height: 14),
+                            SizedBox(height: 14),
 
                             // ==========================================
                             // BIO
                             // ==========================================
                             Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                              ),
+                              padding: EdgeInsets.symmetric(horizontal: 10),
                               child: Text(
                                 profile.bio.isEmpty
                                     ? 'No bio yet.'
                                     : profile.bio,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   height: 1.4,
-                                  color: Colors.white70,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ),
 
-                            const SizedBox(height: 24),
+                            SizedBox(height: 24),
 
                             // ==========================================
                             // PROFILE STATS
@@ -202,14 +195,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Row(
                               children: [
                                 _ProfileStat(
-                                  number: profile.following.toString(),
+                                  number: ConnectionsStore
+                                      .instance
+                                      .followingCount
+                                      .toString(),
                                   label: 'Following',
                                   onTap: () {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) =>
-                                            const ConnectionsScreen(
+                                        builder: (_) => const ConnectionsScreen(
                                           title: 'Following',
                                         ),
                                       ),
@@ -218,14 +213,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
 
                                 _ProfileStat(
-                                  number: profile.followers.toString(),
+                                  number: ConnectionsStore
+                                      .instance
+                                      .followerCount
+                                      .toString(),
                                   label: 'Followers',
                                   onTap: () {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) =>
-                                            const ConnectionsScreen(
+                                        builder: (_) => const ConnectionsScreen(
                                           title: 'Followers',
                                         ),
                                       ),
@@ -240,7 +237,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ],
                             ),
 
-                            const SizedBox(height: 24),
+                            SizedBox(height: 24),
 
                             // ==========================================
                             // EDIT PROFILE BUTTON
@@ -249,24 +246,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               width: double.infinity,
                               height: 48,
                               child: OutlinedButton.icon(
-                                icon: const Icon(
-                                  Icons.edit_outlined,
-                                ),
-                                label: const Text(
+                                icon: Icon(Icons.edit_outlined),
+                                label: Text(
                                   'Edit Profile',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  side: const BorderSide(
-                                    color: Color(0xFF6C63FF),
-                                  ),
+                                  foregroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                  side: BorderSide(color: Color(0xFF6C63FF)),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      12,
-                                    ),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
                                 onPressed: () async {
@@ -280,70 +271,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     ),
                                   );
 
-                                  // Reload the Firebase profile when the
-                                  // user returns from Edit Profile.
-                                  await _loadProfile();
+                                  // The editor publishes the saved profile to ProfileStore.
                                 },
                               ),
                             ),
 
-                            const SizedBox(height: 28),
+                            SizedBox(height: 28),
 
-                            const Divider(
-                              color: Colors.white12,
+                            Divider(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outlineVariant,
                             ),
 
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12),
 
                             // ==========================================
                             // MY VIDEOS HEADER
                             // ==========================================
                             Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.grid_on_outlined,
                                   size: 20,
                                   color: Color(0xFF6C63FF),
                                 ),
 
-                                const SizedBox(width: 8),
+                                SizedBox(width: 8),
 
-                                const Text(
+                                Text(
                                   'My Videos',
                                   style: TextStyle(
                                     fontSize: 18,
-                                    color: Colors.white,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
 
-                                const Spacer(),
+                                Spacer(),
 
                                 Text(
                                   '${myVideos.length}',
-                                  style: const TextStyle(
-                                    color: Colors.grey,
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
                             ),
 
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16),
 
                             // ==========================================
                             // EMPTY VIDEOS
                             // ==========================================
                             if (myVideos.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.symmetric(
-                                  vertical: 40,
-                                ),
+                              Padding(
+                                padding: EdgeInsets.symmetric(vertical: 40),
                                 child: Column(
                                   children: [
                                     Icon(
                                       Icons.video_library_outlined,
                                       size: 52,
-                                      color: Colors.grey,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
 
                                     SizedBox(height: 12),
@@ -351,7 +346,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     Text(
                                       'No videos uploaded yet',
                                       style: TextStyle(
-                                        color: Colors.grey,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                         fontSize: 15,
                                       ),
                                     ),
@@ -362,7 +359,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       'Upload a video and it will appear here.',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
-                                        color: Colors.white38,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                         fontSize: 12,
                                       ),
                                     ),
@@ -370,29 +369,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               )
                             else
-
                               // ==========================================
                               // MY VIDEOS GRID
                               // ==========================================
                               GridView.builder(
                                 shrinkWrap: true,
-                                physics:
-                                    const NeverScrollableScrollPhysics(),
+                                physics: NeverScrollableScrollPhysics(),
                                 itemCount: myVideos.length,
                                 gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  crossAxisSpacing: 8,
-                                  mainAxisSpacing: 8,
-                                  childAspectRatio: 0.72,
-                                ),
-                                itemBuilder: (
-                                  context,
-                                  index,
-                                ) {
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 3,
+                                      crossAxisSpacing: 8,
+                                      mainAxisSpacing: 8,
+                                      childAspectRatio: 0.72,
+                                    ),
+                                itemBuilder: (context, index) {
                                   final post = myVideos[index];
 
                                   return _ProfileVideoTile(
+                                    key: ValueKey(post.id),
                                     post: post,
                                   );
                                 },
@@ -427,27 +422,27 @@ class _ProfileStat extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            vertical: 8,
-          ),
+          padding: EdgeInsets.symmetric(vertical: 8),
           child: Column(
             children: [
               Text(
                 number,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 19,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.bold,
                 ),
               ),
 
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
 
               Text(
                 label,
                 style: TextStyle(
                   fontSize: 12,
-                  color: onTap != null ? Colors.white70 : Colors.grey,
+                  color: onTap != null
+                      ? Theme.of(context).colorScheme.onSurfaceVariant
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -463,7 +458,7 @@ class _ProfileStat extends StatelessWidget {
 // ==========================================================
 
 class _ProfileVideoTile extends StatelessWidget {
-  const _ProfileVideoTile({required this.post});
+  const _ProfileVideoTile({super.key, required this.post});
 
   final DemoVideoPost post;
 
@@ -472,13 +467,13 @@ class _ProfileVideoTile extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (_) => Scaffold(
-          backgroundColor: Colors.black,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
-            backgroundColor: Colors.black,
-            title: const Text('Video'),
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            title: Text('Video'),
           ),
           body: SingleChildScrollView(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12),
             child: VideoPostCard(post: post),
           ),
         ),
@@ -493,24 +488,24 @@ class _ProfileVideoTile extends StatelessWidget {
         _openVideo(context);
       },
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(
-          10,
-        ),
+        borderRadius: BorderRadius.circular(10),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1C1C1C),
-            border: Border.all(color: Colors.white10),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
           ),
           child: Stack(
             fit: StackFit.expand,
             children: [
               // VIDEO PLACEHOLDER
               Container(
-                color: const Color(0xFF242424),
-                child: const Icon(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: Icon(
                   Icons.movie_outlined,
                   size: 38,
-                  color: Colors.white24,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                 ),
               ),
 
@@ -519,15 +514,11 @@ class _ProfileVideoTile extends StatelessWidget {
                 child: Container(
                   width: 42,
                   height: 42,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: Colors.black54,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.play_arrow,
-                    size: 28,
-                    color: Colors.white,
-                  ),
+                  child: Icon(Icons.play_arrow, size: 28, color: Colors.white),
                 ),
               ),
 
@@ -537,21 +528,16 @@ class _ProfileVideoTile extends StatelessWidget {
                 right: 6,
                 bottom: 6,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 4,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 5, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.black54,
-                    borderRadius: BorderRadius.circular(
-                      5,
-                    ),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                   child: Text(
                     post.caption,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
                       fontSize: 10,
                       height: 1.2,

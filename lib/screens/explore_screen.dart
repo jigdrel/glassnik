@@ -39,8 +39,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
       return;
     }
 
-    // Debounced so a fast typist doesn't fire a Firestore query on
-    // every single keystroke — waits for a short pause instead.
     _debounce = Timer(const Duration(milliseconds: 300), () {
       _runSearch(value);
     });

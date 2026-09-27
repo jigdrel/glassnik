@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../services/profile_store.dart';
+import '../services/demo_post_store.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({
@@ -87,7 +88,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not select profile photo.')),
+        SnackBar(content: Text('Could not select profile photo.')),
       );
     } finally {
       if (mounted) setState(() => _pickingPhoto = false);
@@ -127,6 +128,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
+    DemoPostStore.migrateLegacyOwnership(ProfileStore.profile.value.username);
     setState(() => _saving = true);
     try {
       await ProfileStore.updateProfile(
@@ -149,10 +151,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Profile saved.'),
-        duration: Duration(seconds: 2),
-      ),
+      SnackBar(content: Text('Profile saved.'), duration: Duration(seconds: 2)),
     );
     Navigator.pop(context);
   }
@@ -173,16 +172,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return PopScope(
       canPop: !_saving,
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
         appBar: AppBar(
-          backgroundColor: Colors.black,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           elevation: 0,
           centerTitle: true,
 
-          title: const Text(
+          title: Text(
             'Edit Profile',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.bold,
+            ),
           ),
 
           actions: [
@@ -190,7 +192,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               onPressed: _pickingPhoto || _saving ? null : _saveProfile,
               child: Text(
                 _saving ? 'Saving…' : 'Save',
-                style: const TextStyle(
+                style: TextStyle(
                   color: Color(0xFF6C63FF),
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -201,7 +203,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
 
         body: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 35),
+          padding: EdgeInsets.fromLTRB(20, 18, 20, 35),
 
           child: Column(
             children: [
@@ -215,9 +217,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     height: 100,
 
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6C63FF),
+                      color: Color(0xFF6C63FF),
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white24, width: 2),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                        width: 2,
+                      ),
                     ),
 
                     child: ClipOval(
@@ -228,11 +233,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               height: 100,
                               fit: BoxFit.cover,
                             )
-                          : const Icon(
-                              Icons.person,
-                              color: Colors.white,
-                              size: 58,
-                            ),
+                          : Icon(Icons.person, color: Colors.white, size: 58),
                     ),
                   ),
 
@@ -249,12 +250,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         width: 34,
                         height: 34,
 
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           color: Color(0xFF6C63FF),
                           shape: BoxShape.circle,
                         ),
 
-                        child: const Icon(
+                        child: Icon(
                           Icons.camera_alt,
                           color: Colors.white,
                           size: 18,
@@ -265,14 +266,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ],
               ),
 
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
 
               TextButton(
                 onPressed: _pickingPhoto || _saving
                     ? null
                     : _changeProfilePhoto,
 
-                child: const Text(
+                child: Text(
                   'Change profile photo',
                   style: TextStyle(
                     color: Color(0xFF6C63FF),
@@ -286,13 +287,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   onPressed: _pickingPhoto || _saving
                       ? null
                       : () => setState(() => _pendingPhoto = null),
-                  child: const Text('Remove Photo'),
+                  child: Text('Remove Photo'),
                 ),
-              const Text(
+              Text(
                 'Photo changes apply when you save.',
-                style: TextStyle(color: Colors.grey, fontSize: 12),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
 
               // ==================================================
               // DISPLAY NAME
@@ -304,7 +308,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 icon: Icons.badge_outlined,
               ),
 
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
 
               // ==================================================
               // USERNAME
@@ -316,7 +320,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 icon: Icons.alternate_email,
               ),
 
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
 
               // ==================================================
               // BIO
@@ -330,7 +334,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 maxLength: 120,
               ),
 
-              const SizedBox(height: 28),
+              SizedBox(height: 28),
 
               // ==================================================
               // SAVE BUTTON
@@ -342,18 +346,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _pickingPhoto || _saving ? null : _saveProfile,
 
-                  icon: const Icon(Icons.check),
+                  icon: Icon(Icons.check),
 
                   label: Text(
                     _saving ? 'Saving…' : 'Save Changes',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
 
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6C63FF),
+                    backgroundColor: Color(0xFF6C63FF),
                     foregroundColor: Colors.white,
 
                     shape: RoundedRectangleBorder(
@@ -365,14 +366,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
               TextButton(
                 onPressed: _saving ? null : () => Navigator.pop(context),
-                child: const Text('Cancel'),
+                child: Text('Cancel'),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
 
-              const Text(
-                'Profile information is stored locally for the current demo.',
+              Text(
+                'Save to update your profile. Photo changes last for this app session.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 12),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -399,21 +403,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       maxLines: maxLines,
       maxLength: maxLength,
 
-      style: const TextStyle(color: Colors.white),
+      style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
 
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
 
-        labelStyle: const TextStyle(color: Colors.grey),
+        labelStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
 
-        hintStyle: const TextStyle(color: Colors.white38),
+        hintStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
 
-        prefixIcon: Icon(icon, color: const Color(0xFF6C63FF)),
+        prefixIcon: Icon(icon, color: Color(0xFF6C63FF)),
 
         filled: true,
 
-        fillColor: const Color(0xFF1C1C1C),
+        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
 
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -422,12 +430,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Colors.white12),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
 
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF6C63FF), width: 2),
+          borderSide: BorderSide(color: Color(0xFF6C63FF), width: 2),
         ),
       ),
     );
