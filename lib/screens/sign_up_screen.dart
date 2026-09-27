@@ -1,5 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../services/auth_service.dart';
+import '../services/user_service.dart';
 import 'main_navigation_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -17,6 +20,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
+  final AuthService _authService = AuthService();
+  final UserService _userService = UserService();
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -161,37 +167,41 @@ class _SignUpScreenState extends State<SignUpScreen> {
       _isLoading = true;
     });
 
-    try {
-      /*
-       * TEMPORARY ACCOUNT CREATION
-       *
-       * Front-end validation is complete, but Firebase Authentication
-       * is NOT connected yet.
-       *
-       * Later this will become:
-       *
-       * final credential =
-       *     await FirebaseAuth.instance
-       *         .createUserWithEmailAndPassword(
-       *   email: _emailController.text.trim(),
-       *   password: _passwordController.text,
-       * );
-       *
-       * Then the user's profile will be saved to Firestore using:
-       *
-       * credential.user!.uid
-       *
-       * Passwords must NEVER be saved to Firestore.
-       */
+    // Track whether the Auth account got created, so that if the
+    // Firestore step below fails, we can roll it back instead of
+    // leaving a Firebase Auth user with no matching profile doc.
+    User? createdAuthUser;
 
-      await Future.delayed(const Duration(milliseconds: 800));
+    try {
+      final displayName = _displayNameController.text.trim();
+      final username = _usernameController.text.trim();
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+
+      // Step 1: create the actual Firebase Auth account.
+      createdAuthUser = await _authService.signUp(
+        email: email,
+        password: password,
+      );
+
+      if (createdAuthUser == null) {
+        throw Exception('Account creation returned no user.');
+      }
+
+      // Step 2: reserve the username + create the Firestore profile.
+      // This is a separate step because FirebaseAuth has no concept
+      // of "username" — Firestore is where that actually lives.
+      await _userService.createUserProfile(
+        uid: createdAuthUser.uid,
+        displayName: displayName,
+        username: username,
+        email: email,
+      );
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Welcome ${_displayNameController.text.trim()}!'),
-        ),
+        SnackBar(content: Text('Welcome $displayName!')),
       );
 
       Navigator.pushAndRemoveUntil(
@@ -199,7 +209,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
         MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
         (route) => false,
       );
+    } on UsernameTakenException {
+      // The Auth account was created, but the username was taken so
+      // the Firestore profile never got written. Undo the Auth
+      // account so the person can just try again with a different
+      // username instead of being stuck half-registered.
+      await createdAuthUser?.delete();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('That username is already taken. Please choose another.'),
+        ),
+      );
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(authErrorMessage(error))),
+      );
     } catch (error) {
+      // If the Auth account was created but something else went
+      // wrong writing the Firestore profile, roll it back too —
+      // same reasoning as the username-taken case above.
+      await createdAuthUser?.delete();
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -578,15 +613,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                         ),
                       ],
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    const Text(
-                      'Account storage is not connected to Firebase yet.',
-                      textAlign: TextAlign.center,
-
-                      style: TextStyle(color: Colors.white38, fontSize: 11),
                     ),
                   ],
                 ),

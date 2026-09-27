@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 
-import '../models/demo_video_post.dart';
-import '../services/demo_post_store.dart';
+import '../services/auth_service.dart';
+import '../services/post_service.dart';
+import '../services/storage_service.dart';
+import '../services/user_service.dart';
 import '../utils/video_controller_factory.dart';
 
 class CreatePostScreen extends StatefulWidget {
@@ -18,10 +20,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   final ImagePicker _picker = ImagePicker();
 
+  final AuthService _authService = AuthService();
+  final UserService _userService = UserService();
+  final StorageService _storageService = StorageService();
+  final PostService _postService = PostService();
+
   XFile? _selectedVideo;
   VideoPlayerController? _previewController;
 
   bool _isUploading = false;
+  double _uploadProgress = 0;
 
   Future<void> selectVideo() async {
     final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
@@ -67,38 +75,88 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       return;
     }
 
-    setState(() {
-      _isUploading = true;
-    });
+    final user = _authService.currentUser;
 
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    DemoPostStore.addPost(
-      DemoVideoPost(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        username: '@you',
-        caption: caption,
-        videoPath: _selectedVideo!.path,
-        isPickedFile: true,
-        likes: 0,
-      ),
-    );
-
-    if (!mounted) {
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You need to be signed in to upload a video.'),
+        ),
+      );
       return;
     }
 
-    captionController.clear();
-
     setState(() {
-      _isUploading = false;
+      _isUploading = true;
+      _uploadProgress = 0;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Video uploaded successfully!')),
-    );
+    try {
+      final postId = _postService.newPostId();
 
-    Navigator.pop(context);
+      // Read as bytes rather than using dart:io File — this is the
+      // one path that works identically on web, mobile, and desktop.
+      // (A dart:io File built from an image_picker XFile's path does
+      // NOT work on Flutter Web — it throws at runtime.)
+      final videoBytes = await _selectedVideo!.readAsBytes();
+
+      final videoUrl = await _storageService.uploadVideo(
+        uid: user.uid,
+        postId: postId,
+        videoBytes: videoBytes,
+        onProgress: (progress) {
+          if (!mounted) return;
+          setState(() {
+            _uploadProgress = progress;
+          });
+        },
+      );
+
+      final profile = await _userService.getUserProfile(user.uid);
+      final authorUsername =
+          (profile?['username'] as String?) ?? '@unknown';
+
+      await _postService.createPost(
+        postId: postId,
+        authorId: user.uid,
+        authorUsername: authorUsername,
+        videoUrl: videoUrl,
+        caption: caption,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      captionController.clear();
+
+      setState(() {
+        _isUploading = false;
+        _uploadProgress = 0;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Video uploaded successfully!')),
+      );
+
+      Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isUploading = false;
+        _uploadProgress = 0;
+      });
+
+      // Show the real error instead of a generic message — while
+      // you're still shaking out bugs like the web/dart:io one,
+      // seeing the actual exception text saves a lot of guessing.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload failed: $error')),
+      );
+    }
   }
 
   void togglePreview() {
@@ -195,6 +253,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             ),
 
             const SizedBox(height: 20),
+
+            if (_isUploading) ...[
+              LinearProgressIndicator(value: _uploadProgress),
+              const SizedBox(height: 8),
+              Text(
+                'Uploading... ${(_uploadProgress * 100).toStringAsFixed(0)}%',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+            ],
 
             ElevatedButton.icon(
               onPressed: _isUploading ? null : submitPost,

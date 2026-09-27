@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/demo_video_post.dart';
 import '../services/demo_post_store.dart';
+import '../services/connections_store.dart';
 import '../services/profile_store.dart';
 import '../widgets/video_post_card.dart';
 
@@ -135,41 +136,48 @@ class ProfileScreen extends StatelessWidget {
                     // ==================================================
                     // PROFILE STATS
                     // ==================================================
-                    Row(
-                      children: [
-                        _ProfileStat(
-                          number: profile.following.toString(),
-                          label: 'Following',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const ConnectionsScreen(title: 'Following'),
-                              ),
-                            );
-                          },
-                        ),
+                    ListenableBuilder(
+                      listenable: ConnectionsStore.instance,
+                      builder: (context, child) => Row(
+                        children: [
+                          _ProfileStat(
+                            number: ConnectionsStore.instance.followingCount
+                                .toString(),
+                            label: 'Following',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ConnectionsScreen(
+                                    title: 'Following',
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
 
-                        _ProfileStat(
-                          number: profile.followers.toString(),
-                          label: 'Followers',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const ConnectionsScreen(title: 'Followers'),
-                              ),
-                            );
-                          },
-                        ),
+                          _ProfileStat(
+                            number: ConnectionsStore.instance.followerCount
+                                .toString(),
+                            label: 'Followers',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ConnectionsScreen(
+                                    title: 'Followers',
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
 
-                        _ProfileStat(
-                          number: myVideos.length.toString(),
-                          label: 'Videos',
-                        ),
-                      ],
+                          _ProfileStat(
+                            number: myVideos.length.toString(),
+                            label: 'Videos',
+                          ),
+                        ],
+                      ),
                     ),
 
                     const SizedBox(height: 24),
