@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/preferences_store.dart';
 
 class PrivacySettingsScreen extends StatefulWidget {
   const PrivacySettingsScreen({super.key});
@@ -8,208 +9,244 @@ class PrivacySettingsScreen extends StatefulWidget {
 }
 
 class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
-  bool _privateAccount = false;
-  bool _allowComments = true;
-  bool _allowSharing = true;
-  bool _activityStatus = true;
-
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), duration: const Duration(seconds: 1)),
+      SnackBar(content: Text(message), duration: Duration(seconds: 1)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        PreferencesStore.privateAccount,
+        PreferencesStore.allowComments,
+        PreferencesStore.allowSharing,
+        PreferencesStore.activityStatus,
+      ]),
+      builder: (context, child) => Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'Privacy',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          elevation: 0,
+          centerTitle: true,
+          title: Text(
+            'Privacy',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
-      ),
 
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: 30),
-        children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(18, 18, 18, 8),
-            child: Text(
-              'ACCOUNT PRIVACY',
-              style: TextStyle(
-                color: Color(0xFF6C63FF),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.1,
+        body: ListView(
+          padding: EdgeInsets.only(bottom: 30),
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(18, 18, 18, 8),
+              child: Text(
+                'ACCOUNT PRIVACY',
+                style: TextStyle(
+                  color: Color(0xFF6C63FF),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
+                ),
               ),
             ),
-          ),
 
-          SwitchListTile(
-            value: _privateAccount,
-            activeThumbColor: const Color(0xFF6C63FF),
-            secondary: const Icon(Icons.lock_outline, color: Colors.white70),
-            title: const Text(
-              'Private Account',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
+            SwitchListTile(
+              value: PreferencesStore.privateAccount.value,
+              activeThumbColor: Color(0xFF6C63FF),
+              secondary: Icon(
+                Icons.lock_outline,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              title: Text(
+                'Private Account',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              subtitle: Text(
+                'Prefer video visibility for approved followers.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  PreferencesStore.privateAccount.value = value;
+                });
+
+                _showMessage('Preference saved for this session.');
+              },
+            ),
+
+            Divider(
+              color: Theme.of(context).colorScheme.outlineVariant,
+              height: 28,
+            ),
+
+            Padding(
+              padding: EdgeInsets.fromLTRB(18, 8, 18, 8),
+              child: Text(
+                'INTERACTIONS',
+                style: TextStyle(
+                  color: Color(0xFF6C63FF),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
+                ),
               ),
             ),
-            subtitle: const Text(
-              'Only approved followers can see your videos.',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
+
+            SwitchListTile(
+              value: PreferencesStore.allowComments.value,
+              activeThumbColor: Color(0xFF6C63FF),
+              secondary: Icon(
+                Icons.comment_outlined,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              title: Text(
+                'Allow Comments',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              subtitle: Text(
+                'Save your preference for comments.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  PreferencesStore.allowComments.value = value;
+                });
+
+                _showMessage('Preference saved for this session.');
+              },
             ),
-            onChanged: (value) {
-              setState(() {
-                _privateAccount = value;
-              });
 
-              _showMessage(
-                value ? 'Private account enabled' : 'Private account disabled',
-              );
-            },
-          ),
+            SwitchListTile(
+              value: PreferencesStore.allowSharing.value,
+              activeThumbColor: Color(0xFF6C63FF),
+              secondary: Icon(
+                Icons.share_outlined,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              title: Text(
+                'Allow Sharing',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              subtitle: Text(
+                'Save your preference for sharing.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  PreferencesStore.allowSharing.value = value;
+                });
 
-          const Divider(color: Colors.white12, height: 28),
+                _showMessage('Preference saved for this session.');
+              },
+            ),
 
-          const Padding(
-            padding: EdgeInsets.fromLTRB(18, 8, 18, 8),
-            child: Text(
-              'INTERACTIONS',
-              style: TextStyle(
-                color: Color(0xFF6C63FF),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.1,
+            Divider(
+              color: Theme.of(context).colorScheme.outlineVariant,
+              height: 28,
+            ),
+
+            Padding(
+              padding: EdgeInsets.fromLTRB(18, 8, 18, 8),
+              child: Text(
+                'ACTIVITY',
+                style: TextStyle(
+                  color: Color(0xFF6C63FF),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
+                ),
               ),
             ),
-          ),
 
-          SwitchListTile(
-            value: _allowComments,
-            activeThumbColor: const Color(0xFF6C63FF),
-            secondary: const Icon(
-              Icons.comment_outlined,
-              color: Colors.white70,
-            ),
-            title: const Text(
-              'Allow Comments',
-              style: TextStyle(color: Colors.white),
-            ),
-            subtitle: const Text(
-              'Allow other users to comment on your videos.',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            onChanged: (value) {
-              setState(() {
-                _allowComments = value;
-              });
-
-              _showMessage(value ? 'Comments enabled' : 'Comments disabled');
-            },
-          ),
-
-          SwitchListTile(
-            value: _allowSharing,
-            activeThumbColor: const Color(0xFF6C63FF),
-            secondary: const Icon(Icons.share_outlined, color: Colors.white70),
-            title: const Text(
-              'Allow Sharing',
-              style: TextStyle(color: Colors.white),
-            ),
-            subtitle: const Text(
-              'Allow users to share your videos.',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            onChanged: (value) {
-              setState(() {
-                _allowSharing = value;
-              });
-
-              _showMessage(
-                value ? 'Video sharing enabled' : 'Video sharing disabled',
-              );
-            },
-          ),
-
-          const Divider(color: Colors.white12, height: 28),
-
-          const Padding(
-            padding: EdgeInsets.fromLTRB(18, 8, 18, 8),
-            child: Text(
-              'ACTIVITY',
-              style: TextStyle(
-                color: Color(0xFF6C63FF),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.1,
+            SwitchListTile(
+              value: PreferencesStore.activityStatus.value,
+              activeThumbColor: Color(0xFF6C63FF),
+              secondary: Icon(
+                Icons.visibility_outlined,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
-            ),
-          ),
-
-          SwitchListTile(
-            value: _activityStatus,
-            activeThumbColor: const Color(0xFF6C63FF),
-            secondary: const Icon(
-              Icons.visibility_outlined,
-              color: Colors.white70,
-            ),
-            title: const Text(
-              'Activity Status',
-              style: TextStyle(color: Colors.white),
-            ),
-            subtitle: const Text(
-              'Allow other users to see when you are active.',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            onChanged: (value) {
-              setState(() {
-                _activityStatus = value;
-              });
-
-              _showMessage(
-                value ? 'Activity status visible' : 'Activity status hidden',
-              );
-            },
-          ),
-
-          const SizedBox(height: 30),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1C1C1C),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white10),
+              title: Text(
+                'Activity Status',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
-              child: const Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.info_outline, size: 20, color: Color(0xFF6C63FF)),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Privacy settings are currently stored locally for the demo. Backend persistence will be added later.',
-                      style: TextStyle(
-                        color: Colors.white60,
-                        fontSize: 12,
-                        height: 1.4,
+              subtitle: Text(
+                'Save your preference for activity visibility.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  PreferencesStore.activityStatus.value = value;
+                });
+
+                _showMessage('Preference saved for this session.');
+              },
+            ),
+
+            SizedBox(height: 30),
+
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 18),
+              child: Container(
+                padding: EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 20,
+                      color: Color(0xFF6C63FF),
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'These preferences last for this app session only. They do not restrict video access, comments, sharing or activity visibility.',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                          height: 1.4,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

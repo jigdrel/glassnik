@@ -52,7 +52,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // IndexedStack keeps each tab alive.
       body: IndexedStack(index: _selectedIndex, children: _pages),
@@ -72,7 +72,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
           onDestinationSelected: _onNavigationTap,
 
-          backgroundColor: const Color(0xFF111111),
+          backgroundColor: Theme.of(context).colorScheme.surface,
 
           indicatorColor: const Color(0xFF6C63FF),
 
