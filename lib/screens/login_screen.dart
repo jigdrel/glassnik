@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../services/auth_service.dart';
 import 'main_navigation_screen.dart';
 import 'sign_up_screen.dart';
 
@@ -19,6 +20,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final TextEditingController _passwordController =
       TextEditingController();
+
+  final AuthService _authService = AuthService();
 
   bool _obscurePassword = true;
   bool _isLoading = false;
@@ -90,22 +93,9 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final credential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
+      await _authService.signIn(
         email: _emailController.text.trim(),
         password: _passwordController.text,
-      );
-
-      if (credential.user == null) {
-        throw Exception('Firebase did not return a user.');
-      }
-
-      debugPrint(
-        'Signed in as: ${credential.user!.email}',
-      );
-
-      debugPrint(
-        'Firebase UID: ${credential.user!.uid}',
       );
 
       if (!mounted) {
@@ -120,51 +110,11 @@ class _LoginScreenState extends State<LoginScreen> {
         (route) => false,
       );
     } on FirebaseAuthException catch (error) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
-      String message;
-
-      switch (error.code) {
-        case 'invalid-email':
-          message = 'The email address is invalid.';
-          break;
-
-        case 'user-disabled':
-          message = 'This account has been disabled.';
-          break;
-
-        case 'user-not-found':
-          message =
-              'No account was found with this email.';
-          break;
-
-        case 'wrong-password':
-        case 'invalid-credential':
-          message = 'Incorrect email or password.';
-          break;
-
-        case 'too-many-requests':
-          message =
-              'Too many login attempts. Please try again later.';
-          break;
-
-        case 'network-request-failed':
-          message =
-              'Network error. Check your internet connection.';
-          break;
-
-        default:
-          message =
-              error.message ?? 'Unable to sign in.';
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(authErrorMessage(error))));
     } catch (error) {
       if (!mounted) {
         return;
@@ -222,57 +172,25 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(
-        email: email,
-      );
+      await _authService.sendPasswordResetEmail(email);
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Password reset email sent to $email.')),
+      );
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(authErrorMessage(error))));
+    } catch (error) {
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Password reset email sent. Check your inbox.',
-          ),
-        ),
-      );
-    } on FirebaseAuthException catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      String message;
-
-      switch (error.code) {
-        case 'invalid-email':
-          message = 'The email address is invalid.';
-          break;
-
-        case 'user-not-found':
-          message =
-              'No account was found with this email.';
-          break;
-
-        case 'too-many-requests':
-          message =
-              'Too many requests. Please try again later.';
-          break;
-
-        case 'network-request-failed':
-          message =
-              'Network error. Check your internet connection.';
-          break;
-
-        default:
-          message =
-              error.message ??
-              'Unable to send password reset email.';
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
+          content: Text('Unable to send reset email. Please try again.'),
         ),
       );
     }

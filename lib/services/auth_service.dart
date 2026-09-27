@@ -1,26 +1,26 @@
 import 'package:firebase_auth/firebase_auth.dart';
- 
+
 /// Wraps FirebaseAuth so the rest of the app never calls it directly.
 /// Screens call these methods instead of touching FirebaseAuth.instance,
 /// which makes it easy to change auth logic (or swap providers) later
 /// without editing every screen that signs a user in or out.
 class AuthService {
   AuthService._internal();
- 
+
   static final AuthService _instance = AuthService._internal();
- 
+
   factory AuthService() => _instance;
- 
+
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
- 
+
   /// The currently signed-in user, or null if nobody is signed in.
   User? get currentUser => _firebaseAuth.currentUser;
- 
+
   /// Fires whenever the sign-in state changes (sign in, sign out,
   /// token refresh on a new session). SplashScreen listens to this
   /// (or reads currentUser once) to decide where to route the user.
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
- 
+
   /// Creates a new account with email + password.
   ///
   /// Throws a [FirebaseAuthException] on failure. Common `.code` values
@@ -36,10 +36,10 @@ class AuthService {
       email: email,
       password: password,
     );
- 
+
     return credential.user;
   }
- 
+
   /// Signs an existing user in with email + password.
   ///
   /// Throws a [FirebaseAuthException] on failure. Common `.code` values
@@ -57,15 +57,15 @@ class AuthService {
       email: email,
       password: password,
     );
- 
+
     return credential.user;
   }
- 
+
   /// Signs the current user out. Safe to call even if nobody is signed in.
   Future<void> signOut() async {
     await _firebaseAuth.signOut();
   }
- 
+
   /// Sends a password-reset email. Wired up now so Settings' "Forgot
   /// password?" button (currently just a placeholder SnackBar) can call
   /// straight into this when you're ready to connect it.
@@ -73,7 +73,7 @@ class AuthService {
     await _firebaseAuth.sendPasswordResetEmail(email: email);
   }
 }
- 
+
 /// Turns a FirebaseAuthException's error code into a message that's
 /// actually safe and useful to show a user in a SnackBar.
 String authErrorMessage(FirebaseAuthException error) {

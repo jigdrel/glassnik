@@ -7,8 +7,11 @@ import 'widgets/iphone_frame.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
-Future<void> main() async { 
-  WidgetsFlutterBinding.ensureInitialized(); await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform); runApp(const GlassnikApp()); }
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  runApp(const GlassnikApp());
+}
 
 class GlassnikApp extends StatelessWidget {
   const GlassnikApp({super.key});
@@ -30,8 +33,7 @@ class GlassnikApp extends StatelessWidget {
               seedColor: const Color(0xFF6C63FF),
               brightness: Brightness.light,
             ),
-            scaffoldBackgroundColor:
-                const Color(0xFFF5F5F7),
+            scaffoldBackgroundColor: const Color(0xFFF5F5F7),
           ),
 
           darkTheme: AppTheme.darkTheme,
@@ -42,9 +44,7 @@ class GlassnikApp extends StatelessWidget {
           home: const SplashScreen(),
 
           builder: (context, child) {
-            return IPhoneFrame(
-              child: child ?? const SizedBox.shrink(),
-            );
+            return IPhoneFrame(child: child ?? const SizedBox.shrink());
           },
         );
       },
