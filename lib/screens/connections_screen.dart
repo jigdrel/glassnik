@@ -51,16 +51,16 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
       builder: (context, child) {
         final users = _filteredUsers;
         return Scaffold(
-          backgroundColor: Colors.black,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
           appBar: AppBar(
-            backgroundColor: Colors.black,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             elevation: 0,
             centerTitle: true,
             title: Text(
               widget.title,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -70,10 +70,10 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
             children: [
               // SEARCH BAR
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+                padding: EdgeInsets.fromLTRB(16, 10, 16, 14),
                 child: TextField(
                   controller: _searchController,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.white),
 
                   onChanged: (value) {
                     setState(() {
@@ -86,9 +86,14 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
                         ? 'Search followers'
                         : 'Search following',
 
-                    hintStyle: const TextStyle(color: Colors.grey),
+                    hintStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
 
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
 
                     suffixIcon: _searchText.isNotEmpty
                         ? IconButton(
@@ -99,14 +104,21 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
                                 _searchText = '';
                               });
                             },
-                            icon: const Icon(Icons.close, color: Colors.grey),
+                            icon: Icon(
+                              Icons.close,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
                           )
                         : null,
 
                     filled: true,
-                    fillColor: const Color(0xFF1C1C1C),
+                    fillColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
 
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(vertical: 12),
 
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -115,12 +127,14 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
 
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Colors.white10),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
                     ),
 
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(
+                      borderSide: BorderSide(
                         color: Color(0xFF6C63FF),
                         width: 1.5,
                       ),
@@ -131,22 +145,25 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
 
               // USER COUNT
               Padding(
-                padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
+                padding: EdgeInsets.fromLTRB(18, 0, 18, 8),
                 child: Row(
                   children: [
                     Text(
                       widget.title,
-                      style: const TextStyle(
-                        color: Colors.white70,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
 
-                    const Spacer(),
+                    Spacer(),
 
                     Text(
                       '${users.length}',
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -155,19 +172,25 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
               // LIST / EMPTY SEARCH RESULT
               Expanded(
                 child: users.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.person_search_outlined,
                               size: 50,
-                              color: Colors.grey,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                             SizedBox(height: 12),
                             Text(
                               'No users found',
-                              style: TextStyle(color: Colors.grey),
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ],
                         ),
@@ -177,8 +200,8 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
 
                         // Using wildcard parameters avoids
                         // the analyzer warning about "__".
-                        separatorBuilder: (_, _) => const Divider(
-                          color: Colors.white10,
+                        separatorBuilder: (_, _) => Divider(
+                          color: Theme.of(context).colorScheme.outlineVariant,
                           height: 1,
                           indent: 72,
                         ),
@@ -209,18 +232,15 @@ class _UserTile extends StatelessWidget {
     final connections = ConnectionsStore.instance;
     final following = connections.isFollowing(user.id);
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
 
       leading: CircleAvatar(
         radius: 24,
-        backgroundColor: const Color(0xFF6C63FF),
+        backgroundColor: Color(0xFF6C63FF),
 
         child: Text(
           user.initials,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
 
@@ -228,8 +248,8 @@ class _UserTile extends StatelessWidget {
         user.name,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -238,7 +258,7 @@ class _UserTile extends StatelessWidget {
         user.username,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(color: Colors.grey),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
 
       trailing: SizedBox(
@@ -250,7 +270,7 @@ class _UserTile extends StatelessWidget {
 
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                duration: const Duration(seconds: 1),
+                duration: Duration(seconds: 1),
                 content: Text(
                   connections.isFollowing(user.id)
                       ? 'Now following ${user.username}'
@@ -262,16 +282,20 @@ class _UserTile extends StatelessWidget {
 
           style: OutlinedButton.styleFrom(
             backgroundColor: following
-                ? const Color(0xFF1C1C1C)
-                : const Color(0xFF6C63FF),
+                ? Theme.of(context).colorScheme.surfaceContainerHighest
+                : Color(0xFF6C63FF),
 
-            foregroundColor: Colors.white,
+            foregroundColor: following
+                ? Theme.of(context).colorScheme.onSurface
+                : Colors.white,
 
             side: BorderSide(
-              color: following ? Colors.white24 : const Color(0xFF6C63FF),
+              color: following
+                  ? Theme.of(context).colorScheme.outlineVariant
+                  : Color(0xFF6C63FF),
             ),
 
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: EdgeInsets.symmetric(horizontal: 12),
 
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(9),
@@ -280,7 +304,7 @@ class _UserTile extends StatelessWidget {
 
           child: Text(
             following ? 'Following' : 'Follow',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ),
       ),

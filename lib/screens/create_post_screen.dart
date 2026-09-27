@@ -7,7 +7,14 @@ import '../services/demo_post_store.dart';
 import '../utils/video_controller_factory.dart';
 
 class CreatePostScreen extends StatefulWidget {
-  const CreatePostScreen({super.key});
+  const CreatePostScreen({
+    super.key,
+    this.imagePicker,
+    this.videoControllerFactory = createPickedVideoController,
+  });
+
+  final ImagePicker? imagePicker;
+  final VideoPlayerController Function(String) videoControllerFactory;
 
   @override
   State<CreatePostScreen> createState() => _CreatePostScreenState();
@@ -16,7 +23,8 @@ class CreatePostScreen extends StatefulWidget {
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final TextEditingController captionController = TextEditingController();
 
-  final ImagePicker _picker = ImagePicker();
+  late final ImagePicker _picker = widget.imagePicker ?? ImagePicker();
+  final Set<String> _selectedHashtags = {};
 
   XFile? _selectedVideo;
   VideoPlayerController? _previewController;
@@ -32,7 +40,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
     await _previewController?.dispose();
 
-    final VideoPlayerController controller = createPickedVideoController(
+    final VideoPlayerController controller = widget.videoControllerFactory(
       video.path,
     );
 
@@ -76,8 +84,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     DemoPostStore.addPost(
       DemoVideoPost(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
+        ownerId: DemoVideoPost.localOwnerId,
         username: '@you',
         caption: caption,
+        hashtags: List.unmodifiable(_selectedHashtags),
         videoPath: _selectedVideo!.path,
         isPickedFile: true,
         likes: 0,
@@ -184,6 +194,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             const SizedBox(height: 20),
 
             TextField(
+              enabled: !_isUploading,
               controller: captionController,
               maxLines: 4,
               maxLength: 150,
@@ -194,6 +205,41 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
             ),
 
+            const SizedBox(height: 20),
+
+            const Text(
+              'Hashtags',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: DemoVideoPost.genres
+                  .map(
+                    (genre) => FilterChip(
+                      label: Text('#$genre'),
+                      selected: _selectedHashtags.contains(genre),
+                      selectedColor: const Color(0xFF6C63FF),
+                      checkmarkColor: Colors.white,
+                      labelStyle: TextStyle(
+                        color: _selectedHashtags.contains(genre)
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.onSurface,
+                      ),
+                      onSelected: _isUploading
+                          ? null
+                          : (selected) => setState(() {
+                              if (selected) {
+                                _selectedHashtags.add(genre);
+                              } else {
+                                _selectedHashtags.remove(genre);
+                              }
+                            }),
+                    ),
+                  )
+                  .toList(),
+            ),
             const SizedBox(height: 20),
 
             ElevatedButton.icon(
