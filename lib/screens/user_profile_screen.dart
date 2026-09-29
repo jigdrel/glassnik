@@ -2,19 +2,21 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../models/demo_video_post.dart';
+import '../services/auth_service.dart';
+import '../services/follow_service.dart';
 import '../services/post_service.dart';
 import '../services/user_service.dart';
 import '../widgets/video_post_card.dart';
 
-/// A read-only view of ANY user's profile (yours or someone else's),
-/// reached by tapping a username/avatar anywhere in the app — e.g.
-/// from VideoPostCard or Explore's search results.
+/// A read-only-ish view of ANY user's profile (yours or someone
+/// else's), reached by tapping a username/avatar anywhere in the
+/// app — e.g. from VideoPostCard or Explore's search results.
 ///
 /// This is deliberately a separate screen from ProfileScreen (which
-/// is "your own profile with edit controls," still being built out).
-/// This one only ever reads — no edit button, no settings gear — so
-/// it can be finished and used immediately without waiting on or
-/// conflicting with that other screen's changes.
+/// is "your own profile with edit controls"). This one has no edit
+/// button or settings gear — the only interactive piece is the
+/// Follow/Unfollow button, which only shows up when viewing someone
+/// else's profile.
 class UserProfileScreen extends StatelessWidget {
   const UserProfileScreen({super.key, required this.uid});
 
@@ -39,6 +41,9 @@ class UserProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final myUid = AuthService().currentUser?.uid;
+    final isOwnProfile = myUid != null && myUid == uid;
+
     return Scaffold(
       backgroundColor: Colors.black,
 
@@ -77,6 +82,10 @@ class UserProfileScreen extends StatelessWidget {
               (profileData['displayName'] as String?) ?? 'Glassnik User';
           final username = (profileData['username'] as String?) ?? '@unknown';
           final bio = (profileData['bio'] as String?) ?? '';
+          final followersCount =
+              (profileData['followersCount'] as num?)?.toInt() ?? 0;
+          final followingCount =
+              (profileData['followingCount'] as num?)?.toInt() ?? 0;
 
           return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
             stream: PostService().watchUserPosts(uid),
@@ -143,13 +152,28 @@ class UserProfileScreen extends StatelessWidget {
 
                     const SizedBox(height: 20),
 
-                    Text(
-                      '${videos.length} ${videos.length == 1 ? 'video' : 'videos'}',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    // ==================================================
+                    // FOLLOWERS / FOLLOWING / VIDEOS COUNTS
+                    // ==================================================
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _StatColumn(number: followersCount, label: 'Followers'),
+                        const SizedBox(width: 28),
+                        _StatColumn(number: followingCount, label: 'Following'),
+                        const SizedBox(width: 28),
+                        _StatColumn(number: videos.length, label: 'Videos'),
+                      ],
                     ),
+
+                    const SizedBox(height: 20),
+
+                    // ==================================================
+                    // FOLLOW / UNFOLLOW BUTTON
+                    // (hidden entirely when viewing your own profile)
+                    // ==================================================
+                    if (!isOwnProfile && myUid != null)
+                      _FollowButton(myUid: myUid, theirUid: uid),
 
                     const SizedBox(height: 24),
                     const Divider(color: Colors.white12),
@@ -204,6 +228,119 @@ class UserProfileScreen extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _StatColumn extends StatelessWidget {
+  const _StatColumn({required this.number, required this.label});
+
+  final int number;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          '$number',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.grey, fontSize: 12),
+        ),
+      ],
+    );
+  }
+}
+
+class _FollowButton extends StatefulWidget {
+  const _FollowButton({required this.myUid, required this.theirUid});
+
+  final String myUid;
+  final String theirUid;
+
+  @override
+  State<_FollowButton> createState() => _FollowButtonState();
+}
+
+class _FollowButtonState extends State<_FollowButton> {
+  final FollowService _followService = FollowService();
+
+  // Tracks an in-flight tap so a fast double-tap can't fire two
+  // opposite writes (follow then unfollow) before the first finishes.
+  bool _busy = false;
+
+  Future<void> _handleTap(bool currentlyFollowing) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+
+    try {
+      if (currentlyFollowing) {
+        await _followService.unfollow(
+          myUid: widget.myUid,
+          theirUid: widget.theirUid,
+        );
+      } else {
+        await _followService.follow(
+          myUid: widget.myUid,
+          theirUid: widget.theirUid,
+        );
+      }
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not update follow status: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<bool>(
+      stream: _followService.watchIsFollowing(
+        myUid: widget.myUid,
+        theirUid: widget.theirUid,
+      ),
+      builder: (context, snapshot) {
+        final isFollowing = snapshot.data ?? false;
+
+        return SizedBox(
+          width: 160,
+          height: 42,
+          child: isFollowing
+              ? OutlinedButton(
+                  onPressed: _busy ? null : () => _handleTap(true),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white24),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(_busy ? '...' : 'Following'),
+                )
+              : ElevatedButton(
+                  onPressed: _busy ? null : () => _handleTap(false),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6C63FF),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(_busy ? '...' : 'Follow'),
+                ),
+        );
+      },
     );
   }
 }
