@@ -18,6 +18,13 @@ class DemoVideoPost {
   final String id;
   final String authorId;
   final String username;
+
+  /// The author's profile photo, denormalized onto the post at upload
+  /// time so the feed can show it without an extra Firestore read per
+  /// video. Null/empty for posts created before this field existed, or
+  /// for an author who never set a photo -- either way the UI falls
+  /// back to the placeholder icon.
+  final String? authorPhotoUrl;
   final String caption;
   final String videoPath;
   final bool isPickedFile;
@@ -29,6 +36,7 @@ class DemoVideoPost {
     this.ownerId,
     required this.id,
     this.authorId = '',
+    this.authorPhotoUrl,
     required this.username,
     required this.caption,
     required this.videoPath,
@@ -60,6 +68,7 @@ class DemoVideoPost {
     String? ownerId,
     String? id,
     String? authorId,
+    String? authorPhotoUrl,
     String? username,
     String? caption,
     String? videoPath,
@@ -72,6 +81,7 @@ class DemoVideoPost {
       ownerId: ownerId ?? this.ownerId,
       id: id ?? this.id,
       authorId: authorId ?? this.authorId,
+      authorPhotoUrl: authorPhotoUrl ?? this.authorPhotoUrl,
       username: username ?? this.username,
       caption: caption ?? this.caption,
       videoPath: videoPath ?? this.videoPath,

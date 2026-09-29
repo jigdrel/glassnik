@@ -2,12 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../services/auth_service.dart';
+import '../services/block_service.dart';
 import '../services/user_service.dart';
 import 'user_profile_screen.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
-
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();
 }
@@ -15,6 +16,8 @@ class ExploreScreen extends StatefulWidget {
 class _ExploreScreenState extends State<ExploreScreen> {
   final TextEditingController _searchController = TextEditingController();
   final UserService _userService = UserService();
+  final BlockService _blockService = BlockService();
+  final AuthService _authService = AuthService();
 
   Timer? _debounce;
   List<Map<String, dynamic>> _results = [];
@@ -39,6 +42,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       return;
     }
 
+    // Debounced so a fast typist doesn't fire a Firestore query on
+    // every single keystroke — waits for a short pause instead.
     _debounce = Timer(const Duration(milliseconds: 300), () {
       _runSearch(value);
     });
@@ -52,10 +57,31 @@ class _ExploreScreenState extends State<ExploreScreen> {
     try {
       final results = await _userService.searchUsersByUsername(query);
 
+      // Filter out anyone the signed-in user has blocked, so a
+      // blocked account can't be found through search either.
+      final myUid = _authService.currentUser?.uid;
+      List<Map<String, dynamic>> filtered = results;
+
+      if (myUid != null) {
+        final blockChecks = await Future.wait(
+          results.map(
+            (user) => _blockService.isBlocked(
+              myUid: myUid,
+              targetUid: (user['uid'] as String?) ?? '',
+            ),
+          ),
+        );
+
+        filtered = [
+          for (var i = 0; i < results.length; i++)
+            if (!blockChecks[i]) results[i],
+        ];
+      }
+
       if (!mounted) return;
 
       setState(() {
-        _results = results;
+        _results = filtered;
         _hasSearched = true;
         _isSearching = false;
       });

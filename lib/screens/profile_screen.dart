@@ -118,6 +118,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               (profileData['displayName'] as String?) ?? 'Glassnik User';
           final username = (profileData['username'] as String?) ?? '@username';
           final bio = (profileData['bio'] as String?) ?? '';
+          final photoUrl = profileData['photoUrl'] as String?;
           final followersCount =
               (profileData['followersCount'] as num?)?.toInt() ?? 0;
           final followingCount =
@@ -164,12 +165,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             width: 2,
                           ),
                         ),
-                        child: const ClipOval(
-                          child: Icon(
-                            Icons.person,
-                            size: 52,
-                            color: Colors.white,
-                          ),
+                        child: ClipOval(
+                          child: (photoUrl != null && photoUrl.isNotEmpty)
+                              ? Image.network(
+                                  photoUrl,
+                                  width: 92,
+                                  height: 92,
+                                  fit: BoxFit.cover,
+                                )
+                              : const Icon(
+                                  Icons.person,
+                                  size: 52,
+                                  color: Colors.white,
+                                ),
                         ),
                       ),
 

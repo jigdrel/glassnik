@@ -142,11 +142,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
         final profile = await _userService.getUserProfile(user.uid);
         final authorUsername = (profile?['username'] as String?) ?? '@unknown';
+        final authorPhotoUrl = profile?['photoUrl'] as String?;
 
         await _postService.createPost(
           postId: postId,
           authorId: user.uid,
           authorUsername: authorUsername,
+          authorPhotoUrl: authorPhotoUrl,
           videoUrl: videoUrl,
           caption: caption,
           genres: tags,
@@ -154,6 +156,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         published = draft.copyWith(
           id: postId,
           username: authorUsername,
+          authorPhotoUrl: authorPhotoUrl,
           videoPath: videoUrl,
           isPickedFile: false,
           hashtags: tags,

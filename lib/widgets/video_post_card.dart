@@ -195,6 +195,9 @@ https://glassnik.app/post/${widget.post.id}
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final myUid = _authService.currentUser?.uid;
+    final authorPhotoUrl = widget.post.authorPhotoUrl;
+    final hasAuthorPhoto =
+        authorPhotoUrl != null && authorPhotoUrl.isNotEmpty;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -212,10 +215,18 @@ https://glassnik.app/post/${widget.post.id}
               onTap: _openAuthorProfile,
               child: Row(
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 20,
                     backgroundColor: AppColors.primary,
-                    child: Icon(Icons.person, color: Colors.white),
+                    backgroundImage: hasAuthorPhoto
+                        ? NetworkImage(authorPhotoUrl)
+                        : null,
+                    onBackgroundImageError: hasAuthorPhoto
+                        ? (exception, stackTrace) {}
+                        : null,
+                    child: hasAuthorPhoto
+                        ? null
+                        : const Icon(Icons.person, color: Colors.white),
                   ),
                   const SizedBox(width: 12),
                   Text(
