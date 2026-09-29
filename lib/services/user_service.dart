@@ -61,6 +61,59 @@ class UserService {
     });
   }
 
+  /// Updates displayName/bio always, and username only if it changed —
+  /// handling the usernames/{lower} uniqueness reservation the same
+  /// way createUserProfile does at sign-up (release the old reserved
+  /// name, claim the new one, all inside one transaction so nothing
+  /// can race with another user's simultaneous rename).
+  Future<void> updateProfile({
+    required String uid,
+    required String displayName,
+    required String username,
+    required String bio,
+    String? photoUrl,
+    bool removePhoto = false,
+  }) async {
+    final usernameLower = username.replaceFirst('@', '').toLowerCase();
+    final userDocRef = _users.doc(uid);
+    final newUsernameDocRef = _usernames.doc(usernameLower);
+
+    await _firestore.runTransaction((transaction) async {
+      final userSnap = await transaction.get(userDocRef);
+      final currentUsernameLower =
+          (userSnap.data()?['usernameLower'] as String?) ?? '';
+
+      if (usernameLower != currentUsernameLower) {
+        final newUsernameSnap = await transaction.get(newUsernameDocRef);
+
+        if (newUsernameSnap.exists) {
+          throw UsernameTakenException(username);
+        }
+
+        transaction.set(newUsernameDocRef, {'uid': uid});
+
+        if (currentUsernameLower.isNotEmpty) {
+          transaction.delete(_usernames.doc(currentUsernameLower));
+        }
+      }
+
+      final updates = <String, dynamic>{
+        'displayName': displayName,
+        'username': username,
+        'usernameLower': usernameLower,
+        'bio': bio,
+      };
+
+      if (removePhoto) {
+        updates['photoUrl'] = null;
+      } else if (photoUrl != null) {
+        updates['photoUrl'] = photoUrl;
+      }
+
+      transaction.update(userDocRef, updates);
+    });
+  }
+
   Future<bool> isUsernameAvailable(String username) async {
     final doc = await _usernames.doc(username.toLowerCase()).get();
     return !doc.exists;
